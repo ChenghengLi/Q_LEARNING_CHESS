@@ -100,32 +100,7 @@ class Aichess():
     def isCheckMate(self, mystate):
 
         # Your Code
-        
-        
-        
-
-    def DepthFirstSearch(self, currentState, depth):
-    
-        # Your Code here
-
-
- 
-    def BreadthFirstSearch(self, currentState):
-            
-        # Your Code here
-
-
-
-    def BestFirstSearch(self, currentState):
-            
-        # Your Code here
-                
-                
-                
-    def AStarSearch(self, currentState):
-            
-        # Your Code here
-        
+        return
         
 
 def translate(s):
@@ -181,31 +156,3 @@ if __name__ == "__main__":
     #   aichess.getListNextStatesW([[7,4,2],[7,4,6]])
     print("list next states ", aichess.listNextStates)
 
-    # starting from current state find the end state (check mate) - recursive function
-    # aichess.chess.boardSim.listVisitedStates = []
-    # find the shortest path, initial depth 0
-    depth = 0
-    aichess.BreadthFirstSearch(currentState)
-    #aichess.DepthFirstSearch(currentState, depth)
-
-    # MovesToMake = ['1e','2e','2e','3e','3e','4d','4d','3c']
-
-    # for k in range(int(len(MovesToMake)/2)):
-
-    #     print("k: ",k)
-
-    #     print("start: ",MovesToMake[2*k])
-    #     print("to: ",MovesToMake[2*k+1])
-
-    #     start = translate(MovesToMake[2*k])
-    #     to = translate(MovesToMake[2*k+1])
-
-    #     print("start: ",start)
-    #     print("to: ",to)
-
-    #     aichess.chess.moveSim(start, to)
-
-    # aichess.chess.boardSim.print_board()
-    print("#Move sequence...  ", aichess.pathToTarget)
-    print("#Visited sequence...  ", aichess.listVisitedStates)
-    print("#Current State...  ", aichess.chess.board.currentStateW)
