@@ -46,17 +46,27 @@ class Aichess():
         self.listNextStates = []
         self.listVisitedStates = []
         self.pathToTarget = []
-        self.currentStateW = self.chess.boardSim.currentStateW;
+        self.myCurrentStateW = self.chess.boardSim.currentStateW;
+        self.myCurrentStateB = self.chess.boardSim.currentStateB;
         self.depthMax = 8;
         self.checkMate = False
 
-    def getCurrentState(self):
-
+    def getCurrentStateW(self):
         return self.myCurrentStateW
+
+    def getCurrentStateB(self):
+        return self.myCurrentStateB
 
     def getListNextStatesW(self, myState):
 
         self.chess.boardSim.getListNextStatesW(myState)
+        self.listNextStates = self.chess.boardSim.listNextStates.copy()
+
+        return self.listNextStates
+
+    def getListNextStatesB(self, myState):
+
+        self.chess.boardSim.getListNextStatesB(myState)
         self.listNextStates = self.chess.boardSim.listNextStates.copy()
 
         return self.listNextStates
@@ -97,10 +107,53 @@ class Aichess():
         else:
             return False
 
-    def isCheckMate(self, mystate):
+    def isCheckMate(self, mystate, mycolor = True):
 
-        # Your Code
-        return
+        def checkStates(myState):
+            # White checkmate
+            rook_y, rook_x, king_y, king_x, o_rook_y, o_rook_x, o_king_y, o_king_x = (None, None, None, None, None, None, None, None)
+            if mycolor:
+                for i in myState:
+                    if i[2] == 2:
+                        rook_y, rook_y = i[0:2]
+                    elif i[2] == 6:
+                        king_y, king_x = i[0:2]
+                opponent_state = self.getCurrentStateB()
+                for i in opponent_state:
+                    if i[2] == 8:
+                        o_rook_y, o_rook_x = i[0:2]
+                    elif i[2] == 12:
+                        o_king_y, o_king_x = i[0:2]
+            # Black checkmate
+            else:
+                for i in myState:
+                    if i[2] == 8:
+                        rook_y, rook_x = i[0:2]
+                    elif i[2] == 12:
+                        king_y, king_x = i[0:2]
+                opponent_state = self.getCurrentStateW()
+                for i in opponent_state:
+                    if i[2] == 2:
+                        o_rook_y, o_rook_x = i[0:2]
+                    elif i[2] == 6:
+                        o_king_y, o_king_x = i[0:2]
+            king_surrondings = {(king_y-1, king_x-1), (king_y-1, king_x), (king_y-1, king_x+1), (king_y, king_x-1), (king_y, king_x+1), (king_y+1, king_x-1), (king_y+1, king_x), (king_y+1, king_x+1)}
+            if (o_king_y, o_king_x) in king_surrondings or o_rook_x == king_x or o_rook_y == king_y:
+                return True
+            return False
+        if mycolor:
+            assert self.getCurrentStateW() == mystate,  "State not match!!"
+            children = self.getListNextStatesW(mystate)
+            for i in children:
+                if checkStates(i) == False:
+                    return False
+        else:
+            assert self.getCurrentStateB() == mystate,  "State not match!!"
+            children = self.getListNextStatesB(mystate)
+            for i in children:
+                if checkStates(i) == False:
+                    return False
+        return True
         
 
 def translate(s):
@@ -136,9 +189,10 @@ if __name__ == "__main__":
     # # black pieces
     # TA[0][4] = 12
 
-    TA[7][0] = 2
-    TA[7][4] = 6
-    TA[0][4] = 12
+    TA[0][0] = 2
+    TA[0][4] = 6
+    TA[2][4] = 12
+    TA[0][7] = 8
 
     # initialise board
     print("stating AI chess... ")
@@ -154,5 +208,5 @@ if __name__ == "__main__":
     # it uses board to get them... careful 
     aichess.getListNextStatesW(currentState)
     #   aichess.getListNextStatesW([[7,4,2],[7,4,6]])
-    print("list next states ", aichess.listNextStates)
+    print("list next states ", aichess.isCheckMate(aichess.getCurrentStateW()))
 
