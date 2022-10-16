@@ -46,17 +46,15 @@ class Aichess():
         self.listNextStates = []
         self.listVisitedStates = []
         self.pathToTarget = []
-        self.currentStateW = self.chess.boardSim.currentStateW
-        self.currentStateB = self.chess.boardSim.currentStateB
-        self.depthMax = 8
+        self.myCurrentStateW = self.chess.boardSim.currentStateW;
+        self.myCurrentStateB = self.chess.boardSim.currentStateB;
+        self.depthMax = 8;
         self.checkMate = False
 
     def getCurrentStateW(self):
-
         return self.myCurrentStateW
 
     def getCurrentStateB(self):
-
         return self.myCurrentStateB
 
     def getListNextStatesW(self, myState):
@@ -109,6 +107,146 @@ class Aichess():
         else:
             return False
 
+    def isCheckMate(self, mystate, mycolor=True):
+
+        def checkStates(myState):
+            # White checkmate
+            rook_y, rook_x, king_y, king_x, o_rook_y, o_rook_x, o_king_y, o_king_x = (
+            None, None, None, None, None, None, None, None)
+            if mycolor:
+                for i in myState:
+                    if i[2] == 2:
+                        rook_y, rook_y = i[0:2]
+                    elif i[2] == 6:
+                        king_y, king_x = i[0:2]
+                opponent_state = self.getCurrentStateB()
+                for i in opponent_state:
+                    if i[2] == 8:
+                        o_rook_y, o_rook_x = i[0:2]
+                    elif i[2] == 12:
+                        o_king_y, o_king_x = i[0:2]
+            # Black checkmate
+            else:
+                for i in myState:
+                    if i[2] == 8:
+                        rook_y, rook_x = i[0:2]
+                    elif i[2] == 12:
+                        king_y, king_x = i[0:2]
+                opponent_state = self.getCurrentStateW()
+                for i in opponent_state:
+                    if i[2] == 2:
+                        o_rook_y, o_rook_x = i[0:2]
+                    elif i[2] == 6:
+                        o_king_y, o_king_x = i[0:2]
+            king_surrondings = {(king_y - 1, king_x - 1), (king_y - 1, king_x), (king_y - 1, king_x + 1),
+                                (king_y, king_x - 1), (king_y, king_x + 1), (king_y + 1, king_x - 1),
+                                (king_y + 1, king_x), (king_y + 1, king_x + 1)}
+            if (o_king_y, o_king_x) in king_surrondings or o_rook_x == king_x or o_rook_y == king_y:
+                return True
+            return False
+
+        # children = self.getListNextStatesW(self.getCurrentStateW()) if mycolor else self.getListNextStatesB(self.getCurrentStateB())
+        if mycolor:
+            assert self.getCurrentStateW() == mystate, "State not match!!"
+            children = self.getListNextStatesW(mystate)
+            for i in children:
+                if checkStates(i) == False:
+                    return False
+        else:
+            assert self.getCurrentStateB() == mystate, "State not match!!"
+            children = self.getListNextStatesB(mystate)
+            for i in children:
+                if checkStates(i) == False:
+                    return False
+        return True
+
+    def evaluate(self, state, color = True):
+        if self.isCheckMate(state, color):
+            return 999999
+        oponent_state = self.getCurrentStateB() if color else self.getCurrentStateW()
+
+        value = 0
+        for i in state:
+            if i[2] == 2 or i[2] == 8:
+                value += 50
+            elif i[2] == 6 or i[2] == 12:
+                value += 900
+
+        for i in oponent_state:
+            if i[2] == 2 or i[2] == 8:
+                value -= 50
+            elif i[2] == 6 or i[2] == 12:
+                value -= 900
+
+        return value
+
+    # In order to elimante invalid states
+    def checkPositions(self, state):
+        positions = set()
+        for piece in state:
+            (x, y) = piece[0:2]
+            if (x, y) in positions:
+                return False
+            positions.add((x, y))
+        return True
+
+    def moveSim(self, currentState, nextState):
+        (x_1, y_1) = [e for e in currentState if e not in nextState][0][0:2]
+        (x_2, y_2) = [e for e in nextState if e not in currentState][0][0:2]
+        self.chess.moveSim([x_1, y_1], [x_2, y_2])
+        return
+
+    def minimax_decision(self, state, color=True):
+        """Given a state in a game, calculate the best move by searching
+        forward all the way to the terminal states. [Fig. 6.4]"""
+
+        def max_value(state, depth):
+            if depth == self.depthMax:
+                return self.evaluate(state, color)
+            v = -float('inf')
+            children = self.getListNextStatesW(self.getCurrentStateW()) if color else self.getListNextStatesB(self.getCurrentStateB())
+            for child in children:
+                if self.checkPositions(child) == False:
+                    continue
+                self.moveSim(state, child)
+                v = max(v, min_value(child, depth + 1))
+                self.moveSim(child, state)
+            return v
+
+        def min_value(state, depth):
+            if depth == self.depthMax:
+                return self.evaluate(state, color)
+            v = float('inf')
+            children = self.getListNextStatesB(self.getCurrentStateB()) if color else self.getListNextStatesW(self.getCurrentStateW())
+            for child in children:
+                if self.checkPositions(child) == False:
+                    continue
+                self.moveSim(state, child)
+                v = min(v, max_value(child, depth + 1))
+                self.moveSim(child, state)
+            return v
+
+        # Body of minimax_decision starts here:
+        children = list()
+        if color:
+            assert self.getCurrentStateW() == state, "State not match!!"
+            children = self.getListNextStatesW(state)
+        else:
+            assert self.getCurrentStateB() == state, "State not match!!"
+            children = self.getListNextStatesB(state)
+
+        v = -float('inf')
+        next_move = list()
+        for child in children:
+            if self.checkPositions(child) == False:
+                continue
+            self.moveSim(state, child)
+            value = min_value(child, 0)
+            if value > v:
+                v = value
+                next_move = child
+            self.moveSim(child, state)
+        return next_move
 
 
 def translate(s):
@@ -133,40 +271,36 @@ def translate(s):
 
 
 if __name__ == "__main__":
+    #   if len(sys.argv) < 2:
+    #       sys.exit(usage())
 
     # intiialize board
     TA = np.zeros((8, 8))
+    # white pieces
+    # TA[0][0] = 2
+    # TA[2][4] = 6
+    # # black pieces
+    # TA[0][4] = 12
 
-    # Posició inicial pràctica 2
-    TA[7][0] = 2
-    TA[7][5] = 6
-    TA[0][5] = 12
-    TA[0][0] = 8
+    TA[0][0] = 2
+    TA[0][5] = 6
+    TA[2][4] = 12
+    TA[0][7] = 8
 
     # initialise board
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
-    currentStateW = aichess.chess.board.currentStateW.copy()
-    currentStateB = aichess.chess.board.currentStateB.copy()
+    currentState = aichess.chess.board.currentStateW.copy()
 
     print("printing board")
     aichess.chess.boardSim.print_board()
 
     # get list of next states for current state
-    print("current State White:", currentStateW)
-    print("current State Black:", currentStateB)
+    print("current State", currentState)
 
     # it uses board to get them... careful 
-    # aichess.getListNextStatesW(currentState)
-    # aichess.getListNextStatesW([[7,4,2],[7,4,6]])
-    # print("list next states ", aichess.listNextStates)
+    aichess.getListNextStatesW(currentState)
+    #   aichess.getListNextStatesW([[7,4,2],[7,4,6]])
+    print("list next states ", aichess.isCheckMate(aichess.getCurrentStateW()))
 
-    aichess.moveSim(currentStateW, [[0, 0, 2], [7, 5, 6]])
-
-    print("printing board")
-    aichess.chess.boardSim.print_board()
-
-    # get list of next states for current state
-    print("current State White:", currentStateW)
-    print("current State Black:", currentStateB)
-
+    print("next move", aichess.minimax_decision(aichess.getCurrentStateB(), False))
