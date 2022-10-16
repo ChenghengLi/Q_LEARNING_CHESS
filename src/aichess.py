@@ -46,17 +46,29 @@ class Aichess():
         self.listNextStates = []
         self.listVisitedStates = []
         self.pathToTarget = []
-        self.currentStateW = self.chess.boardSim.currentStateW;
-        self.depthMax = 8;
+        self.currentStateW = self.chess.boardSim.currentStateW
+        self.currentStateB = self.chess.boardSim.currentStateB
+        self.depthMax = 8
         self.checkMate = False
 
-    def getCurrentState(self):
+    def getCurrentStateW(self):
 
         return self.myCurrentStateW
+
+    def getCurrentStateB(self):
+
+        return self.myCurrentStateB
 
     def getListNextStatesW(self, myState):
 
         self.chess.boardSim.getListNextStatesW(myState)
+        self.listNextStates = self.chess.boardSim.listNextStates.copy()
+
+        return self.listNextStates
+
+    def getListNextStatesB(self, myState):
+
+        self.chess.boardSim.getListNextStatesB(myState)
         self.listNextStates = self.chess.boardSim.listNextStates.copy()
 
         return self.listNextStates
@@ -97,11 +109,7 @@ class Aichess():
         else:
             return False
 
-    def isCheckMate(self, mystate):
 
-        # Your Code
-        return
-        
 
 def translate(s):
     """
@@ -125,34 +133,40 @@ def translate(s):
 
 
 if __name__ == "__main__":
-    #   if len(sys.argv) < 2:
-    #       sys.exit(usage())
 
     # intiialize board
     TA = np.zeros((8, 8))
-    # white pieces
-    # TA[0][0] = 2
-    # TA[2][4] = 6
-    # # black pieces
-    # TA[0][4] = 12
 
+    # Posició inicial pràctica 2
     TA[7][0] = 2
-    TA[7][4] = 6
-    TA[0][4] = 12
+    TA[7][5] = 6
+    TA[0][5] = 12
+    TA[0][0] = 8
 
     # initialise board
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
-    currentState = aichess.chess.board.currentStateW.copy()
+    currentStateW = aichess.chess.board.currentStateW.copy()
+    currentStateB = aichess.chess.board.currentStateB.copy()
 
     print("printing board")
     aichess.chess.boardSim.print_board()
 
     # get list of next states for current state
-    print("current State", currentState)
+    print("current State White:", currentStateW)
+    print("current State Black:", currentStateB)
 
     # it uses board to get them... careful 
-    aichess.getListNextStatesW(currentState)
-    #   aichess.getListNextStatesW([[7,4,2],[7,4,6]])
-    print("list next states ", aichess.listNextStates)
+    # aichess.getListNextStatesW(currentState)
+    # aichess.getListNextStatesW([[7,4,2],[7,4,6]])
+    # print("list next states ", aichess.listNextStates)
+
+    aichess.moveSim(currentStateW, [[0, 0, 2], [7, 5, 6]])
+
+    print("printing board")
+    aichess.chess.boardSim.print_board()
+
+    # get list of next states for current state
+    print("current State White:", currentStateW)
+    print("current State Black:", currentStateB)
 
