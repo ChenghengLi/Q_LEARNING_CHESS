@@ -48,7 +48,7 @@ class Aichess():
         self.pathToTarget = []
         self.myCurrentStateW = self.chess.boardSim.currentStateW
         self.myCurrentStateB = self.chess.boardSim.currentStateB
-        self.depthMax = 8
+        self.depthMax = 4
         self.checkMate = False
 
     def getCurrentStateW(self):
@@ -147,20 +147,20 @@ class Aichess():
 
         # children = self.getListNextStatesW(self.getCurrentStateW()) if mycolor else self.getListNextStatesB(self.getCurrentStateB())
         if mycolor:
-            assert self.getCurrentStateW() == mystate, "State not match!!"
+            #assert self.getCurrentStateW() == mystate, "State not match!!"
             children = self.getListNextStatesW(mystate)
             for i in children:
                 if checkStates(i) == False:
                     return False
         else:
-            assert self.getCurrentStateB() == mystate, "State not match!!"
+            #assert self.getCurrentStateB() == mystate, "State not match!!"
             children = self.getListNextStatesB(mystate)
             for i in children:
                 if checkStates(i) == False:
                     return False
         return True
 
-    def evaluate(self, state, color = True):
+    def evaluate(self, state, color):
         if self.isCheckMate(state, color):
             return 999999
         oponent_state = self.getCurrentStateB() if color else self.getCurrentStateW()
@@ -194,123 +194,137 @@ class Aichess():
         return tuple(tuple(i) for i in sorted(state))
 
 
-    def moveSim(self, currentState, nextState):
+    def moveSimW(self, currentState, nextState):
         (x_1, y_1) = [e for e in currentState if e not in nextState][0][0:2]
         (x_2, y_2) = [e for e in nextState if e not in currentState][0][0:2]
-        self.chess.moveSim([x_1, y_1], [x_2, y_2])
+        self.chess.moveSimW([x_1, y_1], [x_2, y_2])
         return
+
+    def moveSimB(self, currentState, nextState):
+        #print(currentState, nextState)
+        (x_1, y_1) = [e for e in currentState if e not in nextState][0][0:2]
+        (x_2, y_2) = [e for e in nextState if e not in currentState][0][0:2]
+        self.chess.moveSimB([x_1, y_1], [x_2, y_2])
+        return
+
 
     def minimax_decision(self, stateW, stateB, color=True):
         """Given a state in a game, calculate the best move by searching
-        forward all the way to the terminal states. [Fig. 6.4]"""
-        visited = set()
+        forward all the way to the terminal states. """
+        #visited = set()
         def max_value(stateW, stateB, depth, color):
             if depth == self.depthMax:
-                return self.evaluate(state, color)
+                if color:
+                    return self.evaluate(stateW, color)
+                else:
+                    return self.evaluate(stateB, color)
             v = -float('inf')
             children = list()
             if color:
                 assert self.getCurrentStateW() == stateW, "State not match!!"
                 children = self.getListNextStatesW(stateW)
-                tuple_stateW = self.tupleSort(stateW)
-                visited.add(tuple_stateW)
+                #visited.add(tuple_stateW)
                 for child in children:
                     print(child)
                     tuple_child = self.tupleSort(child)
-                    if self.checkPositions(child) == False or tuple_child in visited:
+                    if not self.checkPositions(child): #or tuple_child in visited:
                         continue
-                    self.moveSim(stateW, child)
+                    self.moveSimW(stateW, child)
                     v = max(v, min_value(child, stateB, depth + 1, not color))
-                    self.moveSim(child, stateW)
+                    self.moveSimW(child, stateW)
             else:
                 assert self.getCurrentStateB() == stateB, "State not match!!"
                 children = self.getListNextStatesB(stateB)
                 tuple_stateB = self.tupleSort(stateB)
-                visited.add(tuple_stateB)
+                #visited.add(tuple_stateB)
                 for child in children:
                     tuple_child = self.tupleSort(child)
                     print(child)
-                    if self.checkPositions(child) == False or tuple_child in visited:
+                    if not self.checkPositions(child): #or tuple_child in visited:
                         continue
-                    self.moveSim(stateB, child)
+                    self.moveSimB(stateB, child)
                     v = max(v, min_value(stateW, child, depth + 1, not color))
-                    self.moveSim(child, stateB)
+                    self.moveSimB(child, stateB)
             return v
 
         def min_value(stateW, stateB, depth, color):
             if depth == self.depthMax:
-                return self.evaluate(state, color)
+                if color:
+                    return self.evaluate(stateW, color)
+                else:
+                    return self.evaluate(stateB, color)
             v = float('inf')
             children = list()
             if color:
                 assert self.getCurrentStateW() == stateW, "State not match!!"
                 children = self.getListNextStatesW(stateW)
                 tuple_stateW = self.tupleSort(stateW)
-                visited.add(tuple_stateW)
+                #visited.add(tuple_stateW)
                 for child in children:
                     tuple_child = self.tupleSort(child)
                     print(child)
-                    if self.checkPositions(child) == False or tuple_child in visited:
+                    if not self.checkPositions(child): # or tuple_child in visited:
                         continue
-                    self.moveSim(stateW, child)
+                    self.moveSimW(stateW, child)
                     v = min(v, max_value(child, stateB, depth + 1, not color))
-                    self.moveSim(child, stateW)
+                    self.moveSimW(child, stateW)
             else:
-                print(self.getCurrentStateB(), stateB)
-                print(self.getCurrentStateW(), stateW)
+                #print(self.getCurrentStateB(), stateB)
+                #print(self.getCurrentStateW(), stateW)
                 assert self.getCurrentStateB() == stateB, "State not match!!"
                 children = self.getListNextStatesB(stateB)
                 tuple_stateB = self.tupleSort(stateB)
-                visited.add(tuple_stateB)
+                #visited.add(tuple_stateB)
                 for child in children:
                     tuple_child = self.tupleSort(child)
                     print(child)
-                    if self.checkPositions(child) == False or tuple_child in visited:
+                    if not self.checkPositions(child): # or tuple_child in visited:
                         continue
-                    self.moveSim(stateB, child)
+                    self.moveSimB(stateB, child)
+                    # Aqui ja són iguals!
                     v = min(v, max_value(stateW, child, depth + 1, not color))
-                    self.moveSim(child, stateB)
+                    self.moveSimB(child, stateB) # Són iguals!
             return v
 
         # Body of minimax_decision starts here:
         children = list()
         if color:
-            print(self.getCurrentStateB(), stateB)
-            print(self.getCurrentStateW(), stateW)
+            #print(self.getCurrentStateB(), stateB)
+            #print(self.getCurrentStateW(), stateW)
             assert self.getCurrentStateW() == stateW, "State not match!!"
             children = self.getListNextStatesW(stateW)
             tuple_stateW = self.tupleSort(stateW)
-            visited.add(tuple_stateW)
+            #visited.add(tuple_stateW)
             v = -float('inf')
             next_move = list()
             for child in children:
                 print(child)
-                if self.checkPositions(child) == False:
+                if not self.checkPositions(child):
                     continue
-                self.moveSim(stateW, child)
-                print("AAA", currentStateW, currentStateB, child)
-                value = min_value(child, stateB, 0, not color)
+                self.moveSimW(stateW, child)
+                #print("AAA", currentStateW, currentStateB, child)
+                value = min_value(child, stateB, 1, not color)
                 if value > v:
                     v = value
                     next_move = child
-                self.moveSim(child, stateW)
+                self.moveSimW(child, stateW)
         else:
             assert self.getCurrentStateB() == stateB, "State not match!!"
             children = self.getListNextStatesB(stateB)
             tuple_stateB = self.tupleSort(stateB)
-            visited.add(tuple_stateB)
-            v = -float('inf')
+            #visited.add(tuple_stateB)
+            v = float('inf')
             next_move = list()
             for child in children:
                 print(child)
-                if self.checkPositions(child) == False:
+                if not self.checkPositions(child):
                     continue
-                self.moveSim(stateB, child)
-                value = min_value(stateW, child, 0, not color)
-                if value > v:
+                self.moveSimB(stateB, child)
+                value = max_value(stateW, child, 1, not color)
+                if value < v:
                     v = value
                     next_move = child
-                self.moveSim(child, stateB)
+                self.moveSimB(child, stateB)
 
         return next_move
 
@@ -348,9 +362,9 @@ if __name__ == "__main__":
     # # black pieces
     # TA[0][4] = 12
 
-    TA[0][0] = 2
-    TA[0][5] = 6
-    TA[2][4] = 12
+    TA[7][0] = 2
+    TA[7][5] = 6
+    TA[0][5] = 12
     TA[0][7] = 8
 
     # initialise board
@@ -366,9 +380,4 @@ if __name__ == "__main__":
     print("current StateW", currentStateW)
     print("current StateB", currentStateB)
 
-    # it uses board to get them... careful 
-    aichess.getListNextStatesW(currentStateW)
-    #   aichess.getListNextStatesW([[7,4,2],[7,4,6]])
-    print("list next states ", aichess.isCheckMate(aichess.getCurrentStateW()))
-
-    print("next move", aichess.minimax_decision(aichess.getCurrentStateW(), aichess.getCurrentStateB(), True))
+    aichess.minimax_decision(aichess.getCurrentStateW(), aichess.getCurrentStateB(), True)

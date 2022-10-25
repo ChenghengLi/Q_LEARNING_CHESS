@@ -73,9 +73,110 @@ class Chess():
                     pawn = piece.Pawn(True)
         self.board.board[pos[0]][pos[1]] = pawn
 
+    def moveSimB(self, start, to, verbose = False):
 
-    def moveSim(self, start, to, verbose=True):
-        
+        """
+        Moves a piece at `start` to `to`. Does nothing if there is no piece at the starting point.
+        Does nothing if the piece at `start` belongs to the wrong color for the current turn.
+        Does nothing if moving the piece from `start` to `to` is not a valid move.
+
+        start : tup
+            Position of a piece to be moved
+
+        to : tup
+            Position of where the piece is to be moved
+
+        precondition: `start` and `to` are valid positions on the board
+        """
+
+        if self.boardSim.board[start[0]][start[1]] == None:
+            if verbose:
+                print("There is no piece to move at the start place")
+            return
+
+        if self.boardSim.board[to[0]][to[1]] != None:
+            if verbose:
+                print("other piece there")
+
+        target_piece = self.boardSim.board[start[0]][start[1]]
+
+        # to ensure alternate moves - ica
+        # if self.turn != target_piece.color:
+        #    print("That's not your piece to move")
+        #    return
+
+        end_piece = self.boardSim.board[to[0]][to[1]]
+        is_end_piece = end_piece != None
+
+        # Checks if a player's own piece is at the `to` coordinate
+        if is_end_piece and self.boardSim.board[start[0]][start[1]].color == end_piece.color:
+            if verbose:
+                print("There's a piece in the path.")
+            return
+
+        if target_piece.is_valid_move(self.boardSim, start, to):
+
+            # Special check for if the move is castling
+            # Board reconfiguration is handled in Piece
+            if target_piece.name == 'K' and abs(start[1] - to[1]) == 2:
+                if verbose:
+                    print("castled")
+                if self.turn and self.black_ghost_piece:
+                    self.boardSim.board[self.black_ghost_piece[0]][self.black_ghost_piece[1]] = None
+                elif not self.turn and self.white_ghost_piece:
+                    self.boardSim.board[self.white_ghost_piece[0]][self.white_ghost_piece[1]] = None
+                self.turn = not self.turn
+                return
+
+            if self.boardSim.board[to[0]][to[1]]:
+                if verbose:
+                    print(str(self.boardSim.board[to[0]][to[1]]) + " taken.")
+                # Special logic for ghost piece, deletes the actual pawn that is not in the `to`
+                # coordinate from en passant
+                if self.boardSim.board[to[0]][to[1]].name == "GP":
+
+                    if self.turn:
+                        self.boardSim.board[
+                            self.black_ghost_piece[0] + 1
+                            ][
+                            self.black_ghost_piece[1]
+                        ] = None
+                        self.black_ghost_piece = None
+                    else:
+                        self.boardSim.board[self.white_ghost_piece[0] - 1][self.black_ghost_piece[1]] = None
+                        self.white_ghost_piece = None
+
+            self.boardSim.board[to[0]][to[1]] = target_piece
+            self.boardSim.board[start[0]][start[1]] = None
+            if verbose:
+                print(str(target_piece) + " moved.")
+            if self.turn and self.black_ghost_piece:
+                self.boardSim.board[self.black_ghost_piece[0]][self.black_ghost_piece[1]] = None
+            elif not self.turn and self.white_ghost_piece:
+                self.boardSim.board[self.white_ghost_piece[0]][self.white_ghost_piece[1]] = None
+
+            # alternate player
+            self.turn = not self.turn
+
+            # AI state change - identify change to make in state
+            for m in range(len(self.boardSim.currentStateB)):
+
+                #print("piece to move", self.board.currentStateB[m])
+                aa = self.boardSim.currentStateB[m]
+                # only the one to move and only for whites so far
+                if self.boardSim.listNames[int(aa[2] - 1)] == target_piece.name and not target_piece.color:
+                    if verbose:
+                        print("->piece initial state ", self.boardSim.currentStateB[m])
+                    self.boardSim.currentStateB[m][0] = to[0]
+                    self.boardSim.currentStateB[m][1] = to[1]
+                    if verbose:
+                        print("->piece to state ", self.boardSim.currentStateB[m])
+
+                #   print("Next States: ",self.board.getListNextStatesW(self.board.currentStateW[m]))
+
+
+    def moveSimW(self, start, to, verbose = False):
+
         """
         Moves a piece at `start` to `to`. Does nothing if there is no piece at the starting point.
         Does nothing if the piece at `start` belongs to the wrong color for the current turn.
@@ -159,13 +260,12 @@ class Chess():
 
             # alternate player
             self.turn = not self.turn
-            
-            
+
             # AI state change - identify change to make in state
             for m in range(len(self.boardSim.currentStateW)):
 
                 # print("piece to move",self.board.currentStateW[m])
-                aa = self.boardSim.currentStateW[m]               
+                aa = self.boardSim.currentStateW[m]
                 # only the one to move and only for whites so far
                 if self.boardSim.listNames[int(aa[2]-1)] == str(target_piece) and target_piece.color:
                     if verbose:
@@ -174,10 +274,8 @@ class Chess():
                     self.boardSim.currentStateW[m][1] = to[1]
                     if verbose:
                         print("->piece to state ",self.boardSim.currentStateW[m])
-                                                       
-                   
-               #   print("Next States: ",self.board.getListNextStatesW(self.board.currentStateW[m]))
 
+                   #   print("Next States: ",self.board.getListNextStatesW(self.board.currentStateW[m]))
 
 
     def move(self, start, to):
@@ -192,7 +290,7 @@ class Chess():
 
         to : tup
             Position of where the piece is to be moved
-        
+
         precondition: `start` and `to` are valid positions on the board
         """
 
@@ -201,7 +299,7 @@ class Chess():
             return
 
         target_piece = self.board.board[start[0]][start[1]]
-        
+
         # to ensure alternate moves
         #if self.turn != target_piece.color:
         #    print("That's not your piece to move")
@@ -216,13 +314,13 @@ class Chess():
             return
 
         if target_piece.is_valid_move(self.board, start, to):
-            
+
             # Special check for if the move is castling
             # Board reconfiguration is handled in Piece
             if target_piece.name == 'K' and abs(start[1] - to[1]) == 2:
-            
+
                 print("castled")
-            
+
                 if self.turn and self.black_ghost_piece:
                     self.board.board[self.black_ghost_piece[0]][self.black_ghost_piece[1]] = None
                 elif not self.turn and self.white_ghost_piece:
@@ -231,7 +329,7 @@ class Chess():
                 return
 
             if self.board.board[to[0]][to[1]]:
-                
+
                 print(str(self.board.board[to[0]][to[1]]) + " taken.")
                 # Special logic for ghost piece, deletes the actual pawn that is not in the `to`
                 # coordinate from en passant
@@ -258,33 +356,23 @@ class Chess():
 
             # alternate player
             self.turn = not self.turn
-            
-            
+
+
             # AI state change - identify change to make in state
             for m in range(len(self.board.currentStateW)):
-   
+
                # print("piece to move",self.board.currentStateW[m])
-               aa = self.board.currentStateW[m]               
+               aa = self.board.currentStateW[m]
                # only the one to move and only for whites so far
                if self.board.listNames[int(aa[2]-1)] == str(target_piece) and target_piece.color:
-                   
+
                    print("->piece initial state ",self.board.currentStateW[m])
                    self.board.currentStateW[m][0] = to[0]
                    self.board.currentStateW[m][1] = to[1]
                    print("->piece to state ",self.board.currentStateW[m])
-                                                       
-                   
-#                   print("Next States: ",self.board.getListNextStatesW(self.board.currentStateW[m]))
-                   
-                   
-    def getListNextStatesW(self):
 
-        """
-        Gets the list of next possible states given the currentStateW
-        
-        """
-       
-                
+
+#                   print("Next States: ",self.board.getListNextStatesW(self.board.currentStateW[m]))
 
 
 def translate(s):

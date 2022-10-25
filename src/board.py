@@ -157,7 +157,7 @@ class Board():
         for each kind of piece
         
         """
-        print("init method")
+        #print("init method")
         self.listNextStates = list()
 
         # print("mypieces",mypieces)
@@ -484,7 +484,7 @@ class Board():
                         self.listSuccessorStates.append(listPotentialNextStates[k])
 
                         # add other state pieces
-            print("adding other pieces", self.listSuccessorStates)
+
             for k in range(len(self.listSuccessorStates)):
                 self.listNextStates.append([self.listSuccessorStates[k]] + listOtherPieces)
 
