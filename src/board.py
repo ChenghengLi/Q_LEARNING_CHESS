@@ -1,6 +1,6 @@
 import piece
 import numpy as np
-
+import copy
 
 class Board():
     """
@@ -149,6 +149,50 @@ class Board():
 
         isSameState = isSameState1 and isSameState2
         return isSameState
+
+
+    def updateState(self, stateW, stateB):
+
+        for i in range(len(self.currentStateW)):
+            self.board[self.currentStateW[i][0]][self.currentStateW[i][1]] == None
+        self.currentStateW = copy.deepcopy(stateW)
+
+        for i in range(len(self.currentStateB)):
+            self.board[self.currentStateB[i][0]][self.currentStateB[i][1]] == None
+        self.currentStateB = copy.deepcopy(stateB)
+
+
+        newState = stateW + stateB
+        # assign pieces
+        for i in range(len(newState)):
+            # White
+            if newState[i][2] == 1:
+                elf.board[newState[i][0]][newState[i][1]] = piece.Pawn(True)
+                # assign AI State
+            elif newState[i][2] == 2:
+                self.board[newState[i][0]][newState[i][1]] = piece.Rook(True)
+            elif newState[i][2] == 3:
+                self.board[newState[i][0]][newState[i][1]] = piece.Knight(True)
+            elif newState[i][2] == 4:
+                self.board[newState[i][0]][newState[i][1]] = piece.Bishop(True)
+            elif newState[i][2] == 5:
+                self.board[newState[i][0]][newState[i][1]] = piece.Queen(True)
+            elif newState[i][2] == 6:
+                self.board[newState[i][0]][newState[i][1]] = piece.King(True)
+
+            elif newState[i][2] == 7:
+                self.board[newState[i][0]][newState[i][1]] = piece.Pawn(False)
+            elif newState[i][2] == 8:
+                self.board[newState[i][0]][newState[i][1]] = piece.Rook(False)
+            elif newState[i][2] == 9:
+                self.board[newState[i][0]][newState[i][1]] = piece.Knight(False)
+            elif newState[i][2] == 10:
+                self.board[newState[i][0]][newState[i][1]] = piece.Bishop(False)
+            elif newState[i][2] == 11:
+                self.board[newState[i][0]][newState[i][1]] = piece.Queen(False)
+            elif newState[i][2] == 12:
+                self.board[newState[i][0]][newState[i][1]] = piece.King(False)
+
 
     def getListNextStatesB(self, mypieces):
 
