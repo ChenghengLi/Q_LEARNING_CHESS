@@ -498,7 +498,6 @@ class Aichess():
             #print(value, v, child)
             if value > v:
                 #self.chess.boardSim.print_board()
-                #print(value)
                 v = value
                 next_move = child
             self.undoMovement(stateW, stateB, child, kill, player)
