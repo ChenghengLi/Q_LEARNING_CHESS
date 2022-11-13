@@ -117,7 +117,7 @@ class Aichess():
         children = self.getListNextStates(stateW, stateB, player)
         for child in children:
             if not checkPosition(child):
-                return False
+                continue
             mymoves = set((x[0],x[1]) for x in child)
             if oponent_king in mymoves:
                 return True
@@ -127,7 +127,13 @@ class Aichess():
 
     def isCheckMate(self, stateW, stateB, player=True):
 
-        if not self.isCheck(stateW, stateB, player):
+        state = stateW if not player else stateB
+
+        for i in state:
+            if i[2] == 6 or i[2] == 12:
+                o_king_y, o_king_x = i[0:2]
+
+        if not self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
             return False
 
         o_children = self.getListNextStates(stateW, stateB, not player)
@@ -142,11 +148,13 @@ class Aichess():
                     continue
                 if player:
                     sW = o_nState
+                    sB = stateB
                 else:
                     sB = o_nState
+                    sW = stateW
             else:
-                sW = stateW if not player else o_child
-                sB = stateB if player else o_child
+                sW = stateW if player else o_child
+                sB = stateB if not player else o_child
 
             for i in o_child:
                 if i[2] == 6 or i[2] == 12:
@@ -281,7 +289,7 @@ class Aichess():
             else:
                 stateW = child
 
-            if self.isCheckMate(stateW, stateB, player):
+            if self.isCheckMate(stateW, stateB, not player):
                 print(stateW, stateB, player)
                 print("White checkmate")
                 self.chess.boardSim.print_board()
@@ -319,7 +327,7 @@ class Aichess():
             else:
                 stateW = child
 
-            if self.isCheckMate(stateW, stateB, player):
+            if self.isCheckMate(stateW, stateB, not player):
                 print("Black checkmate")
                 print(stateW, stateB, player)
                 self.chess.boardSim.print_board()
@@ -386,7 +394,7 @@ class Aichess():
             else:
                 stateW = child
 
-            if self.isCheckMate(stateW, stateB, player):
+            if self.isCheckMate(stateW, stateB, not player):
                 print(stateW, stateB, player)
                 print("max_value checkmate")
                 self.chess.boardSim.print_board()
@@ -401,6 +409,7 @@ class Aichess():
             children = self.getListNextStates(stateW, stateB, player)
 
             for child in children:
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
@@ -429,7 +438,7 @@ class Aichess():
             else:
                 stateW = child
 
-            if self.isCheckMate(stateW, stateB, player):
+            if self.isCheckMate(stateW, stateB, not player):
                 print("min_value checkmate")
                 print(stateW, stateB, player)
                 self.chess.boardSim.print_board()
@@ -442,11 +451,12 @@ class Aichess():
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
             for child in children:
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
-                    if not self.checkKing(nState, player):
+                    if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
                     if player:
@@ -471,7 +481,8 @@ class Aichess():
         beta = float("inf")
 
         for child in children:
-            if not self.checkPositions(stateW, stateB, child, player):
+
+            if not self.checkPositions(stateW, stateB, child, player) :
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
             if kill:
@@ -484,10 +495,10 @@ class Aichess():
                     value = min_value(nState, stateB, child, 1, alpha, beta, not player)
             else:
                 value = min_value(stateW, stateB, child, 1, alpha, beta, not player)
-            # print(value, v, child)
+            #print(value, v, child)
             if value > v:
-                #print(child)
                 #self.chess.boardSim.print_board()
+                #print(value)
                 v = value
                 next_move = child
             self.undoMovement(stateW, stateB, child, kill, player)
@@ -540,8 +551,8 @@ if __name__ == "__main__":
 
     TA[0][7] = 2
     TA[0][5] = 6
-    TA[3][5] = 12
-    TA[0][0] = 8
+    TA[2][5] = 12
+    TA[7][0] = 8
 
     # initialise board
     print("stating AI chess... ")
@@ -555,7 +566,7 @@ if __name__ == "__main__":
     # get list of next states for current state
     print("current StateW", currentStateW)
     print("current StateB", currentStateB)
-    #print(aichess.isCheckMate(currentStateW, currentStateB, True))
+    #print(aichess.isCheckMate(currentStateW, currentStateB, False))
 
 
     #sW = [[6,0,2], [7,5,6]]
@@ -564,4 +575,5 @@ if __name__ == "__main__":
     #aichess.chess.boardSim.updateState(sW, sB)
     #aichess.chess.boardSim.print_board()
     #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    aichess.minimax_decision(currentStateW, currentStateB, False)
+    #aichess.minimax_decision(currentStateW, currentStateB, True)
+    aichess.alphabeta(currentStateW, currentStateB, False)
