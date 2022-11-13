@@ -103,13 +103,36 @@ class Aichess():
             return isVisited
         else:
             return False
+    def isCheck(self, stateW, stateB, oponent_king, player = True):
+
+        def checkPosition(child):
+            positions = set()
+            for piece in child:
+                (x, y) = piece[0:2]
+                if (x, y) in positions:
+                    return False
+                positions.add((x, y))
+            return True
+
+        children = self.getListNextStates(stateW, stateB, player)
+        for child in children:
+            if not checkPosition(child):
+                return False
+            mymoves = set((x[0],x[1]) for x in child)
+            if oponent_king in mymoves:
+                return True
+        return False
+
+
 
     def isCheckMate(self, stateW, stateB, player=True):
+
+        if not self.isCheck(stateW, stateB, player):
+            return False
 
         o_children = self.getListNextStates(stateW, stateB, not player)
         # Tots els possibles moviments del rival
         for o_child in o_children:
-            next = False
             if not self.checkPositions(stateW, stateB, o_child, not player):
                 continue
             o_kill, o_nState = self.moveSim(stateW, stateB, o_child, not player)
@@ -122,83 +145,17 @@ class Aichess():
                 else:
                     sB = o_nState
             else:
-                sW = stateW
-                sB = stateB
+                sW = stateW if not player else o_child
+                sB = stateB if player else o_child
 
             for i in o_child:
                 if i[2] == 6 or i[2] == 12:
                     o_king_y, o_king_x = i[0:2]
 
-            # En cada possible moviment s'ha de poder matar al rei en una jugada
-            if player:
-                for piece in sW:
-                    if piece[0:2] == [o_king_y, o_king_x]:
-                        next = True
-                if next:
-                    continue
-                children = self.getListNextStates(sW, o_child, player)
-                for child in children:
-                    next = False
-                    # Checkpositions
-                    positions = set()
-                    for piece in child:
-                        (x, y) = piece[0:2]
-                        if (x, y) in positions:
-                            next = True
-                            break
-                        positions.add((x, y))
-                    if next:
-                        next = False
-                        continue
-                    # Fem el moviment
-                    kill, nState = self.moveSim(sW, o_child, child, player)
-                    # Revisem si podem arribar a la casella del rei rival
-                    for piece in child:
-                        if piece[0:2] == [o_king_y, o_king_x]:
-                            self.undoMovement(sW, o_child, child, kill, player)
-                            next = True
-                            break
-                    if next:
-                        break
-                    self.undoMovement(sW, o_child, child, kill, player)
-                if next:
-                    self.undoMovement(stateW, stateB, o_child, o_kill, not player)
-                    continue
+            if self.isCheck(sW, sB, (o_king_y, o_king_x), player):
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
-                return False
-
+                continue
             else:
-                children = self.getListNextStates(o_child, sB, player)
-                for piece in sB:
-                    if piece[0:2] == [o_king_y, o_king_x]:
-                        next = True
-                if next:
-                    continue
-                for child in children:
-                    next = False
-                    positions = set()
-                    for piece in child:
-                        (x, y) = piece[0:2]
-                        if (x, y) in positions:
-                            next = True
-                            break
-                        positions.add((x, y))
-                    if next:
-                        next = False
-                        continue
-                    next = False
-                    kill, nState = self.moveSim(o_child, sB, child, player)
-                    for piece in child:
-                        if piece[0:2] == [o_king_y, o_king_x]:
-                            self.undoMovement(o_child, sB, child, kill, player)
-                            next = True
-                            break
-                    if next:
-                        break
-                    self.undoMovement(o_child, sB, child, kill, player)
-                if next:
-                    self.undoMovement(stateW, stateB, o_child, o_kill, not player)
-                    continue
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                 return False
 
@@ -607,4 +564,4 @@ if __name__ == "__main__":
     #aichess.chess.boardSim.updateState(sW, sB)
     #aichess.chess.boardSim.print_board()
     #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    aichess.minimax_decision(currentStateW, currentStateB, True)
+    aichess.minimax_decision(currentStateW, currentStateB, False)

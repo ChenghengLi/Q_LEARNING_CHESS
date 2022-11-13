@@ -3,8 +3,6 @@ import copy
 
 class Checkmate:
     def __init__(self, board, player = True):
-        self.innital_stateW = copy.deepcopy(board.currentStateW)
-        self.innital_stateB = copy.deepcopy(board.currentStateB)
         self.setBoard(board)
         self.setPlayer(player)
 
@@ -14,14 +12,15 @@ class Checkmate:
     def setPlayer(self, player):
         self.player = player
 
-    def _getKing(self):
-        current_state = self.board.currentStateW if not self.player else self.board.currentStateB
-        for piece in current_state:
+
+
+    def _getKing(self, state):
+        for piece in state:
             if piece[2] == 6 or piece[2] == 12:
                 return piece[0:2]
 
-    def _reset(self):
-        self.board.updateState(self.innital_stateW, self.innital_stateB)
+    def _reset(self, stateW, stateB):
+        self.board.updateState(stateW, stateB)
 
     def _checkPositions(self, state):
         positions = set()
@@ -43,9 +42,9 @@ class Checkmate:
     def _move(self, stateW, stateB):
         self.board.updateState(stateW, stateB)
 
-    def isCheck(self, state):
-        o_king_y, o_king_x = self._getKing()
-        children = self._getChildren(state, self.player)
+    def isCheck(self, stateW, stateB):
+        o_king_y, o_king_x = self._getKing(stateW if not self.player else stateB)
+        children = self._getChildren(stateW if self.player else stateB, self.player)
         for child in children:
             if not self._checkPositions(child):
                 continue
@@ -54,20 +53,32 @@ class Checkmate:
                 return True
         return False
 
+    def _checkKing(self, state):
+        pieces = set(x[2] for x in state)
+        return 6 in pieces or 12 in pieces
 
-    def isCheckmate(self):
-        if not self.isCheck(self.board.currentStateW):
+
+    def isCheckmate(self, stateW, stateB):
+
+        if not self._checkKing(stateW) or not self._checkKing(stateB):
             return False
-        children = self._getChildren(self.board.currentStateW, not self.player)
+
+        assert  stateW == self.board.currentStateW and stateB == self.board.currentStateB
+        innitialW = copy.deepcopy(stateW)
+        innitialB = copy.deepcopy(stateB)
+        if not self.isCheck(stateW, stateB):
+            self._reset(innitialW, innitialB)
+            return False
+        children = self._getChildren(stateW if not self.player else stateB, not self.player)
         for child in children:
             if not self._checkPositions(child):
                 continue
             if self.player:
-                self._move(child, self.board.currentStateB)
+                self._move(child, stateB)
             else:
-                self._move(self.board.currentStateW, child)
-            if not self.isCheck(self.board.currentStateW):
-                self._reset()
+                self._move(stateW, child)
+            if not self.isCheck(child):
+                self._reset(innitialW, innitialB)
                 return False
-        self._reset()
+        self._reset(innitialW, innitialB)
         return True

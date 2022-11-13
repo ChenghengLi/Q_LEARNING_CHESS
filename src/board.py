@@ -529,6 +529,7 @@ class Board():
         newListNP = np.array(newList)
 
         # print("list nexts",self.listNextStates)
+        return self.listNextStates
 
     def getListNextStatesW(self, mypieces):
 
@@ -872,6 +873,7 @@ class Board():
         newListNP = np.array(newList)
 
         # print("list nexts",self.listNextStates)
+        return self.listNextStates
 
     def print_board(self):
         """
