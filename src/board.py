@@ -2,34 +2,29 @@ import piece
 import numpy as np
 import copy
 
+
 class Board():
     """
     A class to represent a chess board.
-
     ...
-
     Attributes:
     -----------
     board : list[list[Piece]]
         represents a chess board
-        
+
     turn : bool
         True if white's turn
-
     white_ghost_piece : tup
         The coordinates of a white ghost piece representing a takeable pawn for en passant
-
     black_ghost_piece : tup
         The coordinates of a black ghost piece representing a takeable pawn for en passant
-
     Methods:
     --------
     print_board() -> None
         Prints the current configuration of the board
-
     move(start:tup, to:tup) -> None
         Moves the piece at `start` to `to` if possible. Otherwise, does nothing.
-        
+
     """
 
     def __init__(self, initState, xinit=True):
@@ -85,7 +80,7 @@ class Board():
             for i in range(8):
                 self.board[1][i] = piece.Pawn(False)
 
-        # assign pieces 
+        # assign pieces
         else:
 
             self.currentState = initState
@@ -150,7 +145,6 @@ class Board():
         isSameState = isSameState1 and isSameState2
         return isSameState
 
-
     def updateState(self, stateW, stateB):
 
         for i in range(len(self.currentStateW)):
@@ -161,13 +155,12 @@ class Board():
             self.board[self.currentStateB[i][0]][self.currentStateB[i][1]] == None
         self.currentStateB = copy.deepcopy(stateB)
 
-
         newState = stateW + stateB
         # assign pieces
         for i in range(len(newState)):
             # White
             if newState[i][2] == 1:
-                elf.board[newState[i][0]][newState[i][1]] = piece.Pawn(True)
+                self.board[newState[i][0]][newState[i][1]] = piece.Pawn(True)
                 # assign AI State
             elif newState[i][2] == 2:
                 self.board[newState[i][0]][newState[i][1]] = piece.Rook(True)
@@ -193,15 +186,14 @@ class Board():
             elif newState[i][2] == 12:
                 self.board[newState[i][0]][newState[i][1]] = piece.King(False)
 
-
     def getListNextStatesB(self, mypieces):
 
         """
         Gets the list of next possible states given the currentStateW
         for each kind of piece
-        
+
         """
-        #print("init method")
+        # print("init method")
         self.listNextStates = list()
 
         # print("mypieces",mypieces)
@@ -218,7 +210,6 @@ class Board():
 
             if (str(self.board[mypiece[0]][mypiece[1]]) == '\033[94m' + 'K' + '\033[0m'):
 
-
                 #      print(" mypiece at  ",mypiece[0],mypiece[1])
                 listPotentialNextStates = [[mypiece[0] + 1, mypiece[1], 12], \
                                            [mypiece[0] + 1, mypiece[1] - 1, 12], [mypiece[0], mypiece[1] - 1, 12], \
@@ -232,8 +223,8 @@ class Board():
                     if aa[0] > -1 and aa[0] < 8 and aa[1] > -1 and aa[1] < 8 and listPotentialNextStates[
                         k] not in listOtherPieces and listPotentialNextStates[k] not in self.currentStateB:
 
-                        if self.board[aa[0]][aa[1]] == None:
-                            self.listSuccessorStates.append([aa[0], aa[1], aa[2]])
+                        #if self.board[aa[0]][aa[1]] == None:
+                        self.listSuccessorStates.append([aa[0], aa[1], aa[2]])
 
 
             elif (str(self.board[mypiece[0]][mypiece[1]]) == '\033[94m' + 'P' + '\033[0m'):
@@ -301,7 +292,8 @@ class Board():
                     elif self.board[ix][iy] == None:
                         listPotentialNextStates.append([ix, iy, 8])
 
-                        # check positions are not occupied - so far cannot kill pieces
+
+                # check positions are not occupied - so far cannot kill pieces
                 for k in range(len(listPotentialNextStates)):
 
                     pos = listPotentialNextStates[k].copy()
@@ -543,7 +535,6 @@ class Board():
         """
         Gets the list of next possible states given the currentStateW
         for each kind of piece
-
         """
 
         self.listNextStates = []
@@ -575,8 +566,8 @@ class Board():
                     if aa[0] > -1 and aa[0] < 8 and aa[1] > -1 and aa[1] < 8 and listPotentialNextStates[
                         k] not in listOtherPieces and listPotentialNextStates[k] not in self.currentStateB:
 
-                        if self.board[aa[0]][aa[1]] == None:
-                            self.listSuccessorStates.append([aa[0], aa[1], aa[2]])
+                        #if self.board[aa[0]][aa[1]] == None:
+                        self.listSuccessorStates.append([aa[0], aa[1], aa[2]])
 
 
             elif (str(self.board[mypiece[0]][mypiece[1]]) == 'P'):
@@ -649,7 +640,7 @@ class Board():
                 for k in range(len(listPotentialNextStates)):
 
                     pos = listPotentialNextStates[k].copy()
-                    pos[2] = 12
+                    pos[2] = 6
                     overlapping = False
                     if pos in self.currentStateB:
                         overlapping = True
@@ -881,6 +872,7 @@ class Board():
         newListNP = np.array(newList)
 
         # print("list nexts",self.listNextStates)
+
     def print_board(self):
         """
         Prints the current state of the board.
