@@ -232,40 +232,47 @@ class Aichess():
         return value
 
     # In order to eliminate invalid states
-    def checkPositions(self, stateW, stateB, child, player):
+    def checkPositions(self, stateW, stateB = None, child = None, player = True, all = True):
 
-        if player:
-            #self.chess.boardSim.print_board()
-            #print(self.checkKing(child, player))
-            #print(stateW, stateB)
-            for i in child:
-                if i[2] == 6:
-                    king_y, king_x = i[0:2]
-            for i in stateB:
-                if i[2] == 12:
-                    o_king_y, o_king_x = i[0:2]
-            kS = self.getKingSurrondings(o_king_y, o_king_x)
-            if (king_y, king_x) in kS:
-                return False
+        if all:
+            if player:
+                for i in child:
+                    if i[2] == 6:
+                        king_y, king_x = i[0:2]
+                for i in stateB:
+                    if i[2] == 12:
+                        o_king_y, o_king_x = i[0:2]
+                kS = self.getKingSurrondings(o_king_y, o_king_x)
+                if (king_y, king_x) in kS:
+                    return False
 
+            else:
+                for i in child:
+                    if i[2] == 12:
+                        king_y, king_x = i[0:2]
+                for i in stateW:
+                    if i[2] == 6:
+                        o_king_y, o_king_x = i[0:2]
+                kS = self.getKingSurrondings(o_king_y, o_king_x)
+                if (king_y, king_x) in kS:
+                    return False
+
+            positions = set()
+            for piece in child:
+                (x, y) = piece[0:2]
+                if (x, y) in positions:
+                    return False
+                positions.add((x, y))
+            return True
         else:
-            for i in child:
-                if i[2] == 12:
-                    king_y, king_x = i[0:2]
-            for i in stateW:
-                if i[2] == 6:
-                    o_king_y, o_king_x = i[0:2]
-            kS = self.getKingSurrondings(o_king_y, o_king_x)
-            if (king_y, king_x) in kS:
-                return False
+            positions = set()
+            for piece in stateW:
+                (x, y) = piece[0:2]
+                if (x, y) in positions:
+                    return False
+                positions.add((x, y))
+            return True
 
-        positions = set()
-        for piece in child:
-            (x, y) = piece[0:2]
-            if (x, y) in positions:
-                return False
-            positions.add((x, y))
-        return True
 
     def tupleSort(self, stateW, stateB):
         l = stateW + stateB
@@ -403,10 +410,7 @@ class Aichess():
                     value = min_value(nState, stateB, child, 1, not player)
             else:
                 value = min_value(stateW, stateB, child, 1, not player)
-            #print(value, v, child)
             if value > v:
-                #print(child)
-                #self.chess.boardSim.print_board()
                 v = value
                 next_move = child
             self.undoMovement(stateW, stateB, child, kill, player)
@@ -579,8 +583,8 @@ if __name__ == "__main__":
 
     TA[0][7] = 2
     TA[0][5] = 6
-    TA[7][5] = 12
-    TA[7][0] = 8
+    TA[3][5] = 12
+    TA[0][0] = 8
 
     # initialise board
     print("stating AI chess... ")
