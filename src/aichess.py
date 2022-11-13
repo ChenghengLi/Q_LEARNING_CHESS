@@ -131,11 +131,6 @@ class Aichess():
 
             # En cada possible moviment s'ha de poder matar al rei en una jugada
             if player:
-                for piece in sW:
-                    if piece[0:2] == [o_king_y, o_king_x]:
-                        next = True
-                if next:
-                    continue
                 children = self.getListNextStates(sW, o_child, player)
                 for child in children:
                     next = False
@@ -159,16 +154,10 @@ class Aichess():
 
             else:
                 children = self.getListNextStates(o_child, sB, player)
-                for piece in sB:
-                    if piece[0:2] == [o_king_y, o_king_x]:
-                        next = True
-                if next:
-                    continue
                 for child in children:
                     next = False
                     if not self.checkPositions(o_child, sB, child, player):
                         continue
-
                     kill, nState = self.moveSim(o_child, sB, child, player)
                     for piece in child:
                         if piece[0:2] == [o_king_y, o_king_x]:
