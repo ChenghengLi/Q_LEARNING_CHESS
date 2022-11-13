@@ -454,7 +454,7 @@ class Aichess():
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
-                    if not self.checkKing(nState, player):
+                    if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
                     if player:
@@ -548,8 +548,8 @@ if __name__ == "__main__":
 
     TA[0][7] = 2
     TA[0][5] = 6
-    TA[2][5] = 12
-    TA[2][0] = 8
+    TA[7][5] = 12
+    TA[7][0] = 8
 
     # initialise board
     print("stating AI chess... ")
@@ -572,4 +572,4 @@ if __name__ == "__main__":
     #aichess.chess.boardSim.updateState(sW, sB)
     #aichess.chess.boardSim.print_board()
     #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    aichess.minimax_decision(currentStateW, currentStateB, True)
+    aichess.alphabeta(currentStateW, currentStateB, True)
