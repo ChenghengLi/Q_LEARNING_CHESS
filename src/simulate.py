@@ -37,11 +37,15 @@ class Simulate:
 
     def _move(self, next_move):
         self.aichess.move(self.currentStateW, self.currentStateB, next_move, self.player)
-        self.aichess.moveSim(self.currentStateW, self.currentStateB, next_move, self.player)
+        kill, nState = self.aichess.moveSim(self.currentStateW, self.currentStateB, next_move, self.player)
         if self.player:
-            self.currentStateW =copy.deepcopy(next_move)
+            self.currentStateW = copy.deepcopy(next_move)
+            if kill:
+                self.currentStateB = copy.deepcopy(nState)
         else:
             self.currentStateB = copy.deepcopy(next_move)
+            if kill:
+                self.currentStateW = copy.deepcopy(nState)
         self.aichess.chess.board.print_board()
 
     def simulate(self, depth, times, algorithmW, algorithmB):
