@@ -238,8 +238,6 @@ class Aichess():
             positions.add((x, y))
         return True
 
-
-
     def tupleSort(self, stateW, stateB):
         l = stateW + stateB
         return tuple(tuple(i) for i in sorted(l))
@@ -318,7 +316,7 @@ class Aichess():
                         king_y, king_x = i[0:2]
                 king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+                if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
@@ -380,7 +378,7 @@ class Aichess():
                         king_y, king_x = i[0:2]
                 king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+                if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
@@ -420,7 +418,7 @@ class Aichess():
 
         if self.isCheckMate(stateW, stateB, not player):
             #print("max_value checkmate")
-            # print(stateW, stateB, not player)
+            #print(stateW, stateB, not player)
             # self.chess.boardSim.print_board()
             if player:
                 state = stateW
@@ -439,7 +437,7 @@ class Aichess():
                     king_y, king_x = i[0:2]
             king = (king_y, king_x)
 
-            if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+            if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
@@ -518,6 +516,7 @@ class Aichess():
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
                 if kill:
+
                     if player:
                         if self.isCheck(child, nState, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
@@ -535,6 +534,7 @@ class Aichess():
                     else:
                         value = min_value(nState, stateB, child, depth + 1, alpha, beta, not player)
                 else:
+
                     if player:
                         if self.isCheck(child, stateB, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
@@ -587,6 +587,7 @@ class Aichess():
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
                 if kill:
+
                     if player:
                         if self.isCheck(child, nState, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
@@ -604,6 +605,7 @@ class Aichess():
                     else:
                         value = max_value(nState, stateB, child, depth + 1, alpha, beta, not player)
                 else:
+
                     if player:
                         if self.isCheck(child, stateB, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
@@ -641,8 +643,6 @@ class Aichess():
         alpha = -float("inf")
         beta = float("inf")
 
-        self.chess.boardSim.print_board()
-
         for child in children:
 
             for i in child:
@@ -654,6 +654,7 @@ class Aichess():
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
             if kill:
+
                 if player:
                     if self.isCheck(child, nState, king, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
@@ -671,6 +672,7 @@ class Aichess():
                 else:
                     value = min_value(nState, stateB, child, 1, alpha, beta, not player)
             else:
+
                 if player:
                     if self.isCheck(child, stateB, king, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
@@ -733,11 +735,11 @@ class Aichess():
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
                     if player:
-                        if self.isCheck(child,nState, king, not player):
-                            self.undoMovement(nState, stateB, child, kill, player)
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
                             continue
                     else:
-                        if self.isCheck(stateW, child, king, not player):
+                        if self.isCheck(nState, child, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
                             continue
 
@@ -796,10 +798,10 @@ class Aichess():
                 if kill:
                     if player:
                         if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(nState, stateB, child, kill, player)
+                            self.undoMovement(stateW, stateB, child, kill, player)
                             continue
                     else:
-                        if self.isCheck(stateW, child, king, not player):
+                        if self.isCheck(nState, child, king, not player):
                             self.undoMovement(stateW, stateB, child, kill, player)
                             continue
 
@@ -965,16 +967,12 @@ if __name__ == "__main__":
     # TA[2][4] = 6
     # # black pieces
     # TA[0][4] = 12
-    '''
-    TA[0][7] = 2
-    TA[0][5] = 6
-    TA[2][5] = 12
-    TA[7][0] = 8
-    '''
-    TA[5][7] = 2
-    TA[7][0] = 6
-    TA[7][2] = 12
-    TA[2][0] = 8
+
+    TA[7][0] = 2
+    TA[7][5] = 6
+    TA[0][5] = 12
+    TA[0][0] = 8
+
     # initialise board
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
