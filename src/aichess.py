@@ -195,49 +195,49 @@ class Aichess():
                 value -= 50
             elif i[2] == 6 or i[2] == 12:
                 value -= 900
+
+        children = self.getListNextStates(stateW, stateB, player)
+        children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
+        value += len(children)
+        children = self.getListNextStates(stateW, stateB, not player)
+        children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
+        value -= len(children)
+
         return value
 
     # In order to eliminate invalid states
-    def checkPositions(self, stateW, stateB = None, child = None, player = True, all = True):
+    def checkPositions(self, stateW, stateB = None, child = None, player = True):
 
-        if all:
-            if player:
-                for i in child:
-                    if i[2] == 6:
-                        king_y, king_x = i[0:2]
-                for i in stateB:
-                    if i[2] == 12:
-                        o_king_y, o_king_x = i[0:2]
-                kS = self.getKingSurrondings(o_king_y, o_king_x)
-                if (king_y, king_x) in kS:
-                    return False
+        king_y, king_x, o_king_y, o_king_x = None, None, None, None
+        if player:
+            for i in child:
+                if i[2] == 6:
+                    king_y, king_x = i[0:2]
+            for i in stateB:
+                if i[2] == 12:
+                    o_king_y, o_king_x = i[0:2]
+            kS = self.getKingSurrondings(o_king_y, o_king_x)
+            if (king_y, king_x) in kS:
+                return False
 
-            else:
-                for i in child:
-                    if i[2] == 12:
-                        king_y, king_x = i[0:2]
-                for i in stateW:
-                    if i[2] == 6:
-                        o_king_y, o_king_x = i[0:2]
-                kS = self.getKingSurrondings(o_king_y, o_king_x)
-                if (king_y, king_x) in kS:
-                    return False
-
-            positions = set()
-            for piece in child:
-                (x, y) = piece[0:2]
-                if (x, y) in positions:
-                    return False
-                positions.add((x, y))
-            return True
         else:
-            positions = set()
-            for piece in stateW:
-                (x, y) = piece[0:2]
-                if (x, y) in positions:
-                    return False
-                positions.add((x, y))
-            return True
+            for i in child:
+                if i[2] == 12:
+                    king_y, king_x = i[0:2]
+            for i in stateW:
+                if i[2] == 6:
+                    o_king_y, o_king_x = i[0:2]
+            kS = self.getKingSurrondings(o_king_y, o_king_x)
+            if (king_y, king_x) in kS:
+                return False
+        positions = set()
+        for piece in child:
+            (x, y) = piece[0:2]
+            if (x, y) in positions:
+                return False
+            positions.add((x, y))
+        return True
+
 
 
     def tupleSort(self, stateW, stateB):
@@ -298,6 +298,7 @@ class Aichess():
             else:
                 stateW = child
 
+            visited.add(self.tupleSort(stateW, stateB))
             if self.isCheckMate(stateW, stateB, not player):
                 #print(stateW, stateB, not player)
                 #print("min_value checkmate")
@@ -317,7 +318,7 @@ class Aichess():
                         king_y, king_x = i[0:2]
                 king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player):
+                if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
@@ -358,6 +359,8 @@ class Aichess():
             else:
                 stateW = child
 
+            visited.add(self.tupleSort(stateW, stateB))
+
             if self.isCheckMate(stateW, stateB, not player):
                 #print("max_value checkmate")
                 #print(stateW, stateB, not player)
@@ -367,6 +370,7 @@ class Aichess():
             if depth == self.depthMax:
                 a = self.evaluate(stateW, stateB, player)
                 return a
+
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
@@ -376,7 +380,7 @@ class Aichess():
                         king_y, king_x = i[0:2]
                 king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player):
+                if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
@@ -435,7 +439,7 @@ class Aichess():
                     king_y, king_x = i[0:2]
             king = (king_y, king_x)
 
-            if not self.checkPositions(stateW, stateB, child, player):
+            if not self.checkPositions(stateW, stateB, child, player) or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
@@ -486,6 +490,7 @@ class Aichess():
                 stateB = child
             else:
                 stateW = child
+
 
             if self.isCheckMate(stateW, stateB, not player):
                 #print(stateW, stateB, not player)
@@ -547,6 +552,7 @@ class Aichess():
                     return v
                 alpha = max(alpha, v)
 
+
             return v
 
         def min_value(stateW, stateB, child, depth, alpha, beta, player):
@@ -554,6 +560,7 @@ class Aichess():
                 stateB = child
             else:
                 stateW = child
+
 
             if self.isCheckMate(stateW, stateB, not player):
                 #print("max_value checkmate")
@@ -634,13 +641,14 @@ class Aichess():
         alpha = -float("inf")
         beta = float("inf")
 
+        self.chess.boardSim.print_board()
+
         for child in children:
 
             for i in child:
                 if i[2] == 6 or i[2] == 12:
                     king_y, king_x = i[0:2]
             king = (king_y, king_x)
-
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)

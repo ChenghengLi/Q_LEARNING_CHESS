@@ -7,21 +7,21 @@ class Simulate:
 
     def __init__(self):
         self._reset()
+        print("INNITIAL BOARD")
+        self.aichess.chess.board.print_board()
+        print("STARTING PLAYING")
 
 
     def _reset(self):
         TA = np.zeros((8, 8))
-        TA[7][7] = 2
-        TA[2][4] = 6
+        TA[7][0] = 2
+        TA[7][5] = 6
         TA[0][5] = 12
-        TA[2][6] = 8
+        TA[0][0] = 8
 
         self.aichess = aichess.Aichess(TA, True)
         self.currentStateW = copy.deepcopy(self.aichess.chess.board.currentStateW)
         self.currentStateB = copy.deepcopy(self.aichess.chess.board.currentStateB)
-        print("INNITIAL BOARD")
-        self.aichess.chess.board.print_board()
-        print("STARTING PLAYING")
         self.player = True
 
     def isCheckmate(self):
@@ -54,6 +54,7 @@ class Simulate:
         white_counter = 0
         draw_counter = 0
         for _ in range(times):
+            print(_ + 1," simulation")
             move_counter = 0
             while True and move_counter < 40:
                 next_move = self._getNextMove(algorithmW)
@@ -70,9 +71,10 @@ class Simulate:
                     break
                 self.player = not self.player
                 move_counter += 1
-            self._reset()
             if move_counter == 40:
                 draw_counter += 1
+            self._reset()
+
 
         print("--RESULTS--")
         print("White wins:", white_counter, "->", 100*white_counter/times, "%")
@@ -87,5 +89,5 @@ if __name__ == "__main__":
     depth = 2
     aW = algorithm["alphabeta"]
     aB = algorithm["alphabeta"]
-    times = 1
+    times = 5
     simulator.simulate(depth, times, aW, aB)
