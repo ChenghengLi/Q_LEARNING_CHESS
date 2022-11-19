@@ -48,13 +48,16 @@ class Simulate:
         self.aichess.depthMax = depth
         black_counter = 0
         white_counter = 0
+        draw_counter = 0
         for _ in range(times):
-            while True:
+            move_counter = 0
+            while True and move_counter < 40:
                 next_move = self._getNextMove(algorithmW)
                 self._move(next_move)
                 if self.isCheckmate():
                     white_counter += 1
                     break
+
                 self.player = not self.player
                 next_move = self._getNextMove(algorithmB)
                 self._move(next_move)
@@ -62,15 +65,23 @@ class Simulate:
                     black_counter += 1
                     break
                 self.player = not self.player
+                move_counter += 1
             self._reset()
+            if move_counter == 40:
+                draw_counter += 1
+
+        print("--RESULTS--")
+        print("White wins:", white_counter, "->", 100*white_counter/times, "%")
+        print("Black wins:", black_counter, "->", 100*black_counter/times, "%")
+        print("Draws:", draw_counter, "->", 100*draw_counter/times, "%")
+        print("|| Depth =", depth, "||")
 
 if __name__ == "__main__":
     print("Simulation innitialized")
     simulator = Simulate()
     algorithm = {"minmax":1, "alphabeta":2, "expectimax":3}
-    depth = 4
-    aW = algorithm["minmax"]
-    aB = algorithm["minmax"]
-    times = 10
+    depth = 2
+    aW = algorithm["alphabeta"]
+    aB = algorithm["alphabeta"]
+    times = 1
     simulator.simulate(depth, times, aW, aB)
-

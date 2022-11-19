@@ -311,18 +311,25 @@ class Aichess():
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             for child in children:
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
+                    if player:
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(nState, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -331,6 +338,15 @@ class Aichess():
                     else:
                         value =  min_value(nState, stateB, child, depth + 1, not player)
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value =  min_value(stateW, stateB, child, depth + 1, not player)
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
@@ -354,18 +370,25 @@ class Aichess():
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             for child in children:
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
+                    if player:
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(nState, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -375,6 +398,15 @@ class Aichess():
                         value =  max_value(nState, stateB, child, depth + 1, not player)
 
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value =  max_value(stateW, stateB, child, depth + 1, not player)
 
 
@@ -382,22 +414,41 @@ class Aichess():
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
+        if self.isCheckMate(stateW, stateB, not player):
+            #print("max_value checkmate")
+            # print(stateW, stateB, not player)
+            # self.chess.boardSim.print_board()
+            if player:
+                state = stateW
+            else:
+                state = stateB
+            print("Checkmate")
+            return state
+
         next_move = None
         v = -float('inf')
         children = self.getListNextStates(stateW, stateB, player)
 
-        state = stateW if player else stateB
-        for i in state:
-            if i[2] == 6 or i[2] == 12:
-                king_y, king_x = i[0:2]
-        king = (king_y, king_x)
-        #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-        #print(children)
         for child in children:
+            for i in child:
+                if i[2] == 6 or i[2] == 12:
+                    king_y, king_x = i[0:2]
+            king = (king_y, king_x)
+
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
+
             if kill:
+                if player:
+                    if self.isCheck(child, nState, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(nState, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 if self.checkKing(nState, player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
@@ -406,6 +457,15 @@ class Aichess():
                 else:
                     value = min_value(nState, stateB, child, 1, not player)
             else:
+                if player:
+                    if self.isCheck(child, stateB, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(stateW, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 value = min_value(stateW, stateB, child, 1, not player)
 
             if value > v:
@@ -441,19 +501,27 @@ class Aichess():
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             for child in children:
+
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
 
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
+
                 if kill:
+                    if player:
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(nState, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -462,6 +530,15 @@ class Aichess():
                     else:
                         value = min_value(nState, stateB, child, depth + 1, alpha, beta, not player)
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value = min_value(stateW, stateB, child, depth + 1, alpha, beta, not player)
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
@@ -491,19 +568,27 @@ class Aichess():
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             for child in children:
+
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
 
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
+
                 if kill:
+                    if player:
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(nState, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -512,7 +597,17 @@ class Aichess():
                     else:
                         value = max_value(nState, stateB, child, depth + 1, alpha, beta, not player)
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value = max_value(stateW, stateB, child, depth + 1, alpha, beta, not player)
+
                 v = min(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
 
@@ -522,25 +617,44 @@ class Aichess():
 
             return v
 
+        if self.isCheckMate(stateW, stateB, player):
+            #print("max_value checkmate")
+            # print(stateW, stateB, not player)
+            # self.chess.boardSim.print_board()
+            if player:
+                state = stateW
+            else:
+                state = stateB
+            print("Checkmate")
+            return state
+
         next_move = None
         v = -float('inf')
         children = self.getListNextStates(stateW, stateB, player)
         alpha = -float("inf")
         beta = float("inf")
 
-        state = stateW if player else stateB
-        for i in state:
-            if i[2] == 6 or i[2] == 12:
-                king_y, king_x = i[0:2]
-        king = (king_y, king_x)
-        children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
         for child in children:
 
-            if not self.checkPositions(stateW, stateB, child, player) :
+            for i in child:
+                if i[2] == 6 or i[2] == 12:
+                    king_y, king_x = i[0:2]
+            king = (king_y, king_x)
+
+            if not self.checkPositions(stateW, stateB, child, player):
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
+
             if kill:
+                if player:
+                    if self.isCheck(child, nState, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(nState, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 if self.checkKing(nState, player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
@@ -549,7 +663,17 @@ class Aichess():
                 else:
                     value = min_value(nState, stateB, child, 1, alpha, beta, not player)
             else:
+                if player:
+                    if self.isCheck(child, stateB, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(stateW, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 value = min_value(stateW, stateB, child, 1, alpha, beta, not player)
+
             #print(value, v, child)
             if value > v:
                 #self.chess.boardSim.print_board()
@@ -590,18 +714,25 @@ class Aichess():
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             for child in children:
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
+                    if player:
+                        if self.isCheck(child,nState, king, not player):
+                            self.undoMovement(nState, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -610,6 +741,15 @@ class Aichess():
                     else:
                         value =  chance_value(nState, stateB, child, depth + 1, not player)
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value =  chance_value(stateW, stateB, child, depth + 1, not player)
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
@@ -634,20 +774,27 @@ class Aichess():
 
             children = self.getListNextStates(stateW, stateB, player)
 
-            state = stateW if player else stateB
-            for i in state:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
             sum = 0
             plays = {}
             for child in children:
+                for i in child:
+                    if i[2] == 6 or i[2] == 12:
+                        king_y, king_x = i[0:2]
+                king = (king_y, king_x)
+
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
+                    if player:
+                        if self.isCheck(child, nState, king, not player):
+                            self.undoMovement(nState, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     if self.checkKing(nState, player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -680,6 +827,15 @@ class Aichess():
                         else:
                             sum += value
                 else:
+                    if player:
+                        if self.isCheck(child, stateB, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+                    else:
+                        if self.isCheck(stateW, child, king, not player):
+                            self.undoMovement(stateW, stateB, child, kill, player)
+                            continue
+
                     value =  max_value(stateW, stateB, child, depth + 1, not player)
                     i = 0
                     fill = child.copy()
@@ -709,22 +865,40 @@ class Aichess():
                 v += prob[child] * plays[child]
             return v
 
+        if self.isCheckMate(stateW, stateB, not player):
+            #print("max_value checkmate")
+            # print(stateW, stateB, not player)
+            # self.chess.boardSim.print_board()
+            if player:
+                state = stateW
+            else:
+                state = stateB
+            print("Checkmate")
+            return state
+
         next_move = None
         v = -float('inf')
         children = self.getListNextStates(stateW, stateB, player)
 
-        state = stateW if player else stateB
-        for i in state:
-            if i[2] == 6 or i[2] == 12:
-                king_y, king_x = i[0:2]
-        king = (king_y, king_x)
-        children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
         for child in children:
+            for i in child:
+                if i[2] == 6 or i[2] == 12:
+                    king_y, king_x = i[0:2]
+            king = (king_y, king_x)
+
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
             if kill:
+                if player:
+                    if self.isCheck(child, nState, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(nState, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 if self.checkKing(nState, player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
@@ -733,6 +907,15 @@ class Aichess():
                 else:
                     value = chance_value(nState, stateB, child, 1, not player)
             else:
+                if player:
+                    if self.isCheck(child, stateB, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+                else:
+                    if self.isCheck(stateW, child, king, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
                 value = chance_value(stateW, stateB, child, 1, not player)
             if value > v:
                 v = value
@@ -780,10 +963,10 @@ if __name__ == "__main__":
     TA[2][5] = 12
     TA[7][0] = 8
     '''
-    TA[7][7] = 2
-    TA[2][4] = 6
-    TA[0][5] = 12
-    TA[2][6] = 8
+    TA[5][7] = 2
+    TA[7][0] = 6
+    TA[7][2] = 12
+    TA[2][0] = 8
     # initialise board
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
@@ -805,9 +988,10 @@ if __name__ == "__main__":
     #aichess.chess.boardSim.updateState(sW, sB)
     #aichess.chess.boardSim.print_board()
     #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    move = aichess.minimax_decision(currentStateW, currentStateB, True)
-    #aichess.alphabeta(currentStateW, currentStateB, True)
+    #move = aichess.minimax_decision(currentStateW, currentStateB, True)
+    aichess.alphabeta(currentStateW, currentStateB, True)
     #aichess.expectimax(currentStateW, currentStateB, True)
+    '''
     print(move)
     aichess.chess.board.print_board()
     aichess.chess.boardSim.print_board()
@@ -815,3 +999,4 @@ if __name__ == "__main__":
     aichess.moveSim(currentStateW, currentStateB, move, True)
     aichess.chess.board.print_board()
     aichess.chess.boardSim.print_board()
+    '''
