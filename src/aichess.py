@@ -166,8 +166,9 @@ class Aichess():
             else:
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                 return False
-
         return True
+
+
 
     def getKingSurrondings(self, king_y, king_x):
         king_surrondings = {(king_y - 1, king_x - 1), (king_y - 1, king_x), (king_y - 1, king_x + 1),
@@ -260,6 +261,14 @@ class Aichess():
 
         return kill, nS
 
+    def move(self, stateW, stateB, nextState, player = True):
+        currentState = stateW if player else stateB
+
+        (x_1, y_1) = [e for e in currentState if e not in nextState][0][0:2]
+        (x_2, y_2) = [e for e in nextState if e not in currentState][0][0:2]
+
+        self.chess.move([x_1, y_1], [x_2, y_2])
+
 
     def undoMovement(self, stateW, stateB, child, kill, player = True):
         if kill:
@@ -297,7 +306,6 @@ class Aichess():
 
             if depth == self.depthMax:
                 a = self.evaluate(stateW, stateB, player)
-                #print(a)
                 return a
 
             v = -float('inf')
@@ -308,7 +316,7 @@ class Aichess():
                 if i[2] == 6 or i[2] == 12:
                     king_y, king_x = i[0:2]
             king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
+            #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
 
             for child in children:
                 if not self.checkPositions(stateW, stateB, child, player):
@@ -342,7 +350,6 @@ class Aichess():
 
             if depth == self.depthMax:
                 a = self.evaluate(stateW, stateB, player)
-                #print(a)
                 return a
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
@@ -352,7 +359,7 @@ class Aichess():
                 if i[2] == 6 or i[2] == 12:
                     king_y, king_x = i[0:2]
             king = (king_y, king_x)
-            children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
+            #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
 
             for child in children:
                 if not self.checkPositions(stateW, stateB, child, player):
@@ -366,8 +373,11 @@ class Aichess():
                         value =  max_value(stateW, nState, child, depth + 1, not player)
                     else:
                         value =  max_value(nState, stateB, child, depth + 1, not player)
+
                 else:
                     value =  max_value(stateW, stateB, child, depth + 1, not player)
+
+
                 v = min(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
@@ -381,8 +391,8 @@ class Aichess():
             if i[2] == 6 or i[2] == 12:
                 king_y, king_x = i[0:2]
         king = (king_y, king_x)
-        children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
-
+        #children = [child for child in children if not self.isCheck(stateW, stateB, king, not player)]
+        #print(children)
         for child in children:
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
@@ -397,6 +407,7 @@ class Aichess():
                     value = min_value(nState, stateB, child, 1, not player)
             else:
                 value = min_value(stateW, stateB, child, 1, not player)
+
             if value > v:
                 v = value
                 next_move = child
@@ -763,12 +774,16 @@ if __name__ == "__main__":
     # TA[2][4] = 6
     # # black pieces
     # TA[0][4] = 12
-
+    '''
     TA[0][7] = 2
     TA[0][5] = 6
     TA[2][5] = 12
     TA[7][0] = 8
-
+    '''
+    TA[7][7] = 2
+    TA[2][4] = 6
+    TA[0][5] = 12
+    TA[2][6] = 8
     # initialise board
     print("stating AI chess... ")
     aichess = Aichess(TA, True)
@@ -790,6 +805,13 @@ if __name__ == "__main__":
     #aichess.chess.boardSim.updateState(sW, sB)
     #aichess.chess.boardSim.print_board()
     #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    #aichess.minimax_decision(currentStateW, currentStateB, True)
+    move = aichess.minimax_decision(currentStateW, currentStateB, True)
     #aichess.alphabeta(currentStateW, currentStateB, True)
-    aichess.expectimax(currentStateW, currentStateB, True)
+    #aichess.expectimax(currentStateW, currentStateB, True)
+    print(move)
+    aichess.chess.board.print_board()
+    aichess.chess.boardSim.print_board()
+    aichess.move(currentStateW, currentStateB, move, True)
+    aichess.moveSim(currentStateW, currentStateB, move, True)
+    aichess.chess.board.print_board()
+    aichess.chess.boardSim.print_board()
