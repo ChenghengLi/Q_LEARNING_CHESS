@@ -86,7 +86,7 @@ if __name__ == "__main__":
     print("Simulation innitialized")
     simulator = Simulate()
     algorithm = {"minmax":1, "alphabeta":2, "expectimax":3}
-    depth = 2
+    depth = 4
     aW = algorithm["alphabeta"]
     aB = algorithm["alphabeta"]
     times = 5

@@ -121,6 +121,7 @@ class Aichess():
             mymoves = set((x[0],x[1]) for x in child)
             if oponent_king in mymoves:
                 return True
+
         return False
 
 
@@ -177,31 +178,86 @@ class Aichess():
         return king_surrondings
 
     def evaluate(self, stateW, stateB, player = True):
-        if self.isCheckMate(stateW, stateB, player):
-            return 999999
+
 
         oponent_state = stateB if player else stateW
         state = stateW if player else stateB
 
         value = 0
+        o_rook_y, o_rook_x, rook_y, rook_x = None, None, None, None
+        # Material count
         for i in state:
             if i[2] == 2 or i[2] == 8:
-                value += 50
+                value += 5
+                rook_y, rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value += 900
+                value += 100
+                king_y, king_x = i[0:2]
 
         for i in oponent_state:
             if i[2] == 2 or i[2] == 8:
-                value -= 50
+                value -= 5
+                o_rook_y, o_rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value -= 900
+                value -= 100
+                o_king_y, o_king_x = i[0:2]
 
+        # Mobility
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
         value += len(children)
         children = self.getListNextStates(stateW, stateB, not player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
         value -= len(children)
+
+        # King safety
+        '''
+        king_surrondings = self.getKingSurrondings(king_y, king_x)
+        for i in oponent_state:
+            if tuple(i[0:2]) in king_surrondings:
+                value += 1
+
+        o_king_surrondings = self.getKingSurrondings(o_king_y, o_king_x)
+        for i in state:
+            if tuple(i[0:2]) in o_king_surrondings:
+                value -= 1
+        '''
+
+
+        # Checks
+        if self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
+            value += 10
+
+        if self.isCheck(stateW, stateB, (king_y, king_x), not player):
+            value -= 10
+
+        def manhattan_distance(piece_1, piece_2):
+            return abs(piece_1[0] - piece_2[0]) + abs(piece_1[1] - piece_2[1])
+
+        def get_dist_to_center(piece):
+            center = {(3, 3), (3, 4), (4, 3), (4, 4)}
+            return max([manhattan_distance(piece, x) for x in center])
+
+        value += get_dist_to_center((o_king_y, o_king_x))
+
+        value -= get_dist_to_center((king_y, king_x))
+
+        if rook_x == None and o_rook_x == None:
+            return 0
+
+        if rook_x == None and o_rook_y != None:
+            # get far from the the oppponent king
+            value -= manhattan_distance((o_king_y, o_king_x), (king_y, king_x))
+            # get close to the rook
+            value += manhattan_distance((o_king_y, o_king_x), (o_rook_y, o_rook_x))
+
+        if rook_x != None and o_rook_x == None:
+            #get close to the king our king
+            value += manhattan_distance((king_y, king_x), (king_y, king_x))
+            # get far from the king our rook
+            value -= manhattan_distance((king_y, king_x), (rook_y, rook_x))
+
+
 
         return value
 
@@ -285,6 +341,7 @@ class Aichess():
         return king_code not in set(x[2] for x in state)
 
 
+
     def minimax_decision(self, stateW, stateB, player=True):
 
         visited = set()
@@ -296,11 +353,7 @@ class Aichess():
             else:
                 stateW = child
 
-            visited.add(self.tupleSort(stateW, stateB))
             if self.isCheckMate(stateW, stateB, not player):
-                #print(stateW, stateB, not player)
-                #print("min_value checkmate")
-                #self.chess.boardSim.print_board()
                 return -999999
 
             if depth == self.depthMax:
@@ -491,9 +544,6 @@ class Aichess():
 
 
             if self.isCheckMate(stateW, stateB, not player):
-                #print(stateW, stateB, not player)
-                #print("min_value checkmate")
-                #self.chess.boardSim.print_board()
                 return -999999
 
             if depth == self.depthMax:
@@ -955,53 +1005,60 @@ def translate(s):
         return None
 
 
+import random
+
+
+def getKingSurrondings(king_y, king_x):
+    king_surrondings = {(king_y - 1, king_x - 1), (king_y - 1, king_x), (king_y - 1, king_x + 1),
+                        (king_y, king_x - 1), (king_y, king_x + 1), (king_y + 1, king_x - 1),
+                        (king_y + 1, king_x), (king_y + 1, king_x + 1)}
+    return king_surrondings
+
+def generateBoard():
+    """
+    Generates a random board
+    """
+
+    board = np.zeros((8, 8))
+    # Generate random pieces
+    kS = set()
+    for i in (6,2,12,8):
+        x = random.randint(0, 7)
+        y = random.randint(0, 7)
+        if i == 6:
+            kS = getKingSurrondings(y, x)
+        while board[x][y] != 0 or (y, x) in kS:
+            x = random.randint(0, 7)
+            y = random.randint(0, 7)
+            if i == 6:
+                kS = getKingSurrondings(y, x)
+        board[x][y] = i
+    return board
+
 if __name__ == "__main__":
     #   if len(sys.argv) < 2:
     #       sys.exit(usage())
-
-    # intiialize board
-    TA = np.zeros((8, 8))
-    # white pieces
-    # TA[0][0] = 2
-    # TA[2][4] = 6
-    # # black pieces
-    # TA[0][4] = 12
-
-    TA[7][0] = 2
-    TA[7][5] = 6
-    TA[0][5] = 12
-    TA[0][0] = 8
-
-    # initialise board
     print("stating AI chess... ")
-    aichess = Aichess(TA, True)
-    currentStateW = copy.deepcopy(aichess.chess.board.currentStateW)
-    currentStateB = copy.deepcopy(aichess.chess.board.currentStateB)
+    # intiialize board
+    for i in range(10000):
+        TA = generateBoard()
 
-    print("printing board")
-    aichess.chess.boardSim.print_board()
+        # initialise board
+        aichess = Aichess(TA, True)
 
-    # get list of next states for current state
-    print("current StateW", currentStateW)
-    print("current StateB", currentStateB)
-    #print(aichess.isCheckMate(currentStateW, currentStateB, False))
+        currentStateW = copy.deepcopy(aichess.chess.board.currentStateW)
+        currentStateB = copy.deepcopy(aichess.chess.board.currentStateB)
+        oK = list()
+        for i in currentStateB:
+            if i[2] == 12:
+                oK = i[0:2]
+        oK = tuple(oK)
+        cmW = aichess.isCheckMate(currentStateW, currentStateB, True)
+        if cmW:
+            print("white checkmate")
+            aichess.chess.board.print_board()
+        cm = aichess.isCheckMate(currentStateW, currentStateB, not True)
+        if cm:
+            print("black checkmate")
+            aichess.chess.board.print_board()
 
-
-    #sW = [[6,0,2], [7,5,6]]
-    #sB = [[0,5,12], [0,7,8]]
-
-    #aichess.chess.boardSim.updateState(sW, sB)
-    #aichess.chess.boardSim.print_board()
-    #print(aichess.getListNextStates(currentStateW, currentStateB, True))
-    #move = aichess.minimax_decision(currentStateW, currentStateB, True)
-    aichess.alphabeta(currentStateW, currentStateB, True)
-    #aichess.expectimax(currentStateW, currentStateB, True)
-    '''
-    print(move)
-    aichess.chess.board.print_board()
-    aichess.chess.boardSim.print_board()
-    aichess.move(currentStateW, currentStateB, move, True)
-    aichess.moveSim(currentStateW, currentStateB, move, True)
-    aichess.chess.board.print_board()
-    aichess.chess.boardSim.print_board()
-    '''
