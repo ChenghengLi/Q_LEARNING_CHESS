@@ -561,7 +561,6 @@ class Aichess():
             else:
                 stateW = child
 
-
             if self.isCheckMate(stateW, stateB, not player):
                 #print("max_value checkmate")
                 #print(stateW, stateB, not player)
@@ -569,7 +568,7 @@ class Aichess():
                 return 999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
+                a = self.evaluate(stateW, stateB, not player)
                 # print(a)
                 return a
             v = float('inf')
@@ -778,7 +777,7 @@ class Aichess():
                 return 999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
+                a = self.evaluate(stateW, stateB, not player)
                 #print(a)
                 return a
 
