@@ -5,7 +5,7 @@ Created on Thu Sep  8 11:22:03 2022
 @author: ignasi
 """
 import copy
-
+import math
 import chess
 import numpy as np
 import sys
@@ -104,7 +104,7 @@ class Aichess():
         else:
             return False
 
-
+    # Funció que determina si un estat és Check
     def isCheck_1(self, state, player = True):
 
         stateB = state.stateB
@@ -122,6 +122,7 @@ class Aichess():
         oponent_king = self.getKing(stateB if player else stateW)
 
         children = self.getListNextStates(stateW, stateB, player)
+        # Per totes les posibles jugades, s'ha de poder arribar al rey rival
         for child in children:
             if not checkPosition(child):
                 continue
@@ -181,6 +182,7 @@ class Aichess():
         return king_surrondings
 
     def evaluate(self, state, player = True):
+        player = self.player
 
         stateW = state.stateW
         stateB = state.stateB
@@ -346,9 +348,11 @@ class Aichess():
             depth = state.depth + 1
             state.check = self.isCheck_1(state, not player)
 
+            # En primer lloc, mirem si el estat és un checkmate
             if self.isCheckMate(state, not player):
                 return -999999
 
+            # Després mirem si ens trobem en la profunditat demanada
             if depth == self.depthMax:
                 a = self.evaluate(state, player)
                 return a
@@ -356,19 +360,24 @@ class Aichess():
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
+            # Tot seguit passem a mirar els fills del estat del jugador corresponent
             for child in children:
 
+                # Descartem els fills si són estats "erronis"
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
-
+                # Sinó, feim el moviment
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
+                # Revisem si després de fer-lo és un Check del rival, en aquest cas no el feim
+                # Si matem una peça, creem el nou estat llevant la part de la peça morta corresponent
                 if kill:
 
                     newStateW = child if player else nState
                     newStateB = nState if player else child
                     newState = State(newStateW, newStateB, state, depth, not player)
 
+                    # També mirem si no han matat al rey
                     if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
@@ -386,11 +395,13 @@ class Aichess():
 
                     value =  min_value(newState, not player)
 
+                # Al final feim el màxim i desfem el moviment
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
 
             return v
 
+        # Equivalent al max_value però fent el mínim al final
         def min_value(state, player):
 
             stateB = state.stateB
@@ -444,8 +455,10 @@ class Aichess():
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
+        # Part principal
         initialState = State(stateW, stateB, None, 0, player)
 
+        # En primer lloc mirem si és un checkmate
         if self.isCheckMate(initialState, not player):
             if player:
                 state = stateW
@@ -454,6 +467,7 @@ class Aichess():
             print("Checkmate")
             return state
 
+        # Sinó, comencem a aplicar el minimax
         next_move = None
         v = -float('inf')
         children = self.getListNextStates(stateW, stateB, player)
@@ -498,6 +512,7 @@ class Aichess():
         return next_move
 
 
+    # Mètode alphabeta molt similar però afegint la part de les alpha i les beta tal i com s'ha explicat a classe
     def alphabeta(self, stateW, stateB, player):
         self.player = player
 
@@ -672,7 +687,7 @@ class Aichess():
         print("Next move:", next_move)
         return next_move
 
-
+    # Mètode expectimax, ara el min_value passa a ser un chance_value
     def expectimax(self, stateW, stateB, player):
         self.player = player
 
@@ -724,6 +739,7 @@ class Aichess():
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
+        # Tupelitzar estats
         def tupleState(state):
             return tuple(tuple(row) for row in state)
 
@@ -744,9 +760,8 @@ class Aichess():
 
             children = self.getListNextStates(stateW, stateB, player)
 
-
-            plays = dict()
-
+            sum = 0
+            plays = {}
             for child in children:
 
                 if not self.checkPositions(stateW, stateB, child, player):
@@ -763,7 +778,17 @@ class Aichess():
                         continue
 
                     value =  max_value(newState, not player)
+
+                    # Anem guardant els values de les jugades d'aquesta manera en un diccionari
+                    # MILLOR EXPLICAT A LA MEMÒRIA
                     plays[tupleState(child)] = value
+
+                    if value > 0:
+                        sum += -1/float(value)
+                    elif value == 0:
+                        sum += -1
+                    else:
+                        sum += value
 
                 else:
                     newStateW = child if player else stateW
@@ -775,16 +800,34 @@ class Aichess():
                         continue
 
                     value =  max_value(newState, not player)
+
                     plays[tupleState(child)] = value
+                    if value > 0:
+                        sum += -1/float(value)
+                    elif value == 0:
+                        sum += -1
+                    else:
+                        sum += value
                 self.undoMovement(stateW, stateB, child, kill, player)
 
+            # Al final, apliquem la distribució de probabilitat a cada jugada i la multipliquem pel propi valor de la jugada
+            # Així calculem l'esperança
 
+            prob = {}
             v = 0
-
+            if sum == 0:
+                return 0
+            sum = math.fabs(sum)
             for child in plays.keys():
-                v += (1/len(plays)) * plays[child]
+                if plays[child] > 0:
+                    prob[child] = (1/float(plays[child])) / sum
+                else:
+                    prob[child] = -plays[child]/sum
+                v += prob[child] * plays[child]
+
             return v
 
+        # Part principal
         initialState = State(stateW, stateB, None, 0, player)
 
         if self.isCheckMate(initialState, not player):
@@ -913,4 +956,3 @@ if __name__ == "__main__":
         if cm:
             print("black checkmate")
             aichess.chess.board.print_board()
-
