@@ -168,7 +168,9 @@ class Aichess():
         stateB = state.stateB
 
         o_children = self.getListNextStates(stateW, stateB, not player)
+
         # Tots els possibles moviments del rival
+
         for o_child in o_children:
             if not self.checkPositions(stateW, stateB, o_child, not player):
                 continue
@@ -195,32 +197,13 @@ class Aichess():
         return True
 
 
-
     def getKingSurrondings(self, king_y, king_x):
         king_surrondings = {(king_y - 1, king_x - 1), (king_y - 1, king_x), (king_y - 1, king_x + 1),
                             (king_y, king_x - 1), (king_y, king_x + 1), (king_y + 1, king_x - 1),
                             (king_y + 1, king_x), (king_y + 1, king_x + 1)}
         return king_surrondings
 
-    def evaluate(self, state, player=True):
-
-        def getPath(state):
-            path = list()
-            temp = state
-            while temp.parent != None:
-                path.append(temp)
-                temp = temp.parent
-            path.append(temp)
-            return path
-
-        def getRepetivive(path):
-            path_set = set([str(x) for x in path])
-            return len(path)-len(path_set)
-
-        bonus = 0
-        penalty = 0
-
-        path = getPath(state)
+    def evaluate(self, state, player = True):
 
         stateW = state.stateW
         stateB = state.stateB
@@ -228,67 +211,90 @@ class Aichess():
         oponent_state = stateB if player else stateW
         state = stateW if player else stateB
 
-
+        value = 0
         o_rook_y, o_rook_x, rook_y, rook_x = None, None, None, None
-
         # Material count
         for i in state:
             if i[2] == 2 or i[2] == 8:
-                bonus += 500
+                value += 5
                 rook_y, rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                bonus += 1000
+                value += 100
                 king_y, king_x = i[0:2]
 
         for i in oponent_state:
             if i[2] == 2 or i[2] == 8:
-                penalty += 500
+                value -= 5
                 o_rook_y, o_rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                penalty += 1000
+                value -= 100
                 o_king_y, o_king_x = i[0:2]
-
-        with_rook = (rook_x!=None and rook_y!=None)
-        o_with_rook = (o_rook_x!=None and o_rook_y!=None)
 
         # Mobility
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-        bonus += len(children)
+        value += len(children)
+
         children = self.getListNextStates(stateW, stateB, not player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-        penalty += len(children)
+        value -= len(children)
 
 
-        def distance(piece_1, piece_2):
-            return max(abs(piece_1[0] - piece_2[0]), abs(piece_1[1] - piece_2[1]))
+        # King safety
+        '''
+        king_surrondings = self.getKingSurrondings(king_y, king_x)
+        for i in oponent_state:
+            if tuple(i[0:2]) in king_surrondings:
+                value += 1
+        o_king_surrondings = self.getKingSurrondings(o_king_y, o_king_x)
+        for i in state:
+            if tuple(i[0:2]) in o_king_surrondings:
+                value -= 1
+        '''
 
-        # Dist to center
+
+        # Checks
+        if self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
+            value += 10
+
+        if self.isCheck(stateW, stateB, (king_y, king_x), not player):
+            value -= 10
+
+        def manhattan_distance(piece_1, piece_2):
+            return abs(piece_1[0] - piece_2[0]) + abs(piece_1[1] - piece_2[1])
+
         def get_dist_to_center(piece):
             center = {(3, 3), (3, 4), (4, 3), (4, 4)}
-            return max([distance(piece, x) for x in center])
+            return max([manhattan_distance(piece, x) for x in center])
 
-        bonus += get_dist_to_center((o_king_y, o_king_x))
-        penalty += get_dist_to_center((king_y, king_x))
+        value += get_dist_to_center((o_king_y, o_king_x))
 
-        # Dist between kings
-        if o_with_rook:
+        value -= get_dist_to_center((king_y, king_x))
+
+        if rook_x == None and o_rook_x == None:
+            return 0
+
+        if rook_x == None and o_rook_y != None:
             # get far from the the oppponent king
-            bonus += 5 * distance((o_king_y, o_king_x), (king_y, king_x))
-            bonus += 5*getRepetivive(path)
+            value -= manhattan_distance((o_king_y, o_king_x), (king_y, king_x))
+            # get close to the rook
+            value += manhattan_distance((o_king_y, o_king_x), (o_rook_y, o_rook_x))
 
-        if with_rook:
-            # get close to the king our king
-            penalty += 5 * distance((o_king_y, o_king_x), (king_y, king_x))
-            penalty += 5 * getRepetivive(path)
+        if rook_x != None and o_rook_x == None:
+            #get close to the king our king
+            value += manhattan_distance((king_y, king_x), (king_y, king_x))
+            # get far from the king our rook
+            value -= manhattan_distance((king_y, king_x), (rook_y, rook_x))
 
-        return bonus - penalty
+
+        return value
 
 
     # In order to eliminate invalid states
     def checkPositions(self, stateW, stateB = None, child = None, player = True):
 
         king_y, king_x, o_king_y, o_king_x = None, None, None, None
+
         if player:
             for i in child:
                 if i[2] == 6:
@@ -310,6 +316,7 @@ class Aichess():
             kS = self.getKingSurrondings(o_king_y, o_king_x)
             if (king_y, king_x) in kS:
                 return False
+
         positions = set()
         for piece in child:
             (x, y) = piece[0:2]
@@ -361,13 +368,11 @@ class Aichess():
 
     def checkKing(self, state, player):
         king_code = 12 if player else 6
-        #print(king_code)
         return king_code not in set(x[2] for x in state)
 
 
 
     def minimax_decision(self, stateW, stateB, player=True):
-
 
         def max_value(state, player):
 
@@ -686,9 +691,7 @@ class Aichess():
                 if self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
-
                 value = min_value(newState, alpha, beta, not player)
-
 
             if value > v:
                 v = value

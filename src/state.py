@@ -10,6 +10,5 @@ class State:
         self.player = player
         self.check = False
 
-
     def __str__(self):
         return "State: " + str(self.stateW) + " " + str(self.stateB)
