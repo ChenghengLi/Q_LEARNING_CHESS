@@ -181,7 +181,6 @@ class Aichess():
         return king_surrondings
 
     def evaluate(self, state, player = True):
-        player = self.player
 
         stateW = state.stateW
         stateB = state.stateB
@@ -745,8 +744,9 @@ class Aichess():
 
             children = self.getListNextStates(stateW, stateB, player)
 
-            sum = 0
-            plays = {}
+
+            plays = dict()
+
             for child in children:
 
                 if not self.checkPositions(stateW, stateB, child, player):
@@ -763,15 +763,7 @@ class Aichess():
                         continue
 
                     value =  max_value(newState, not player)
-
                     plays[tupleState(child)] = value
-
-                    if value > 0:
-                        sum += -1/value
-                    elif value == 0:
-                        sum += -1
-                    else:
-                        sum += value
 
                 else:
                     newStateW = child if player else stateW
@@ -783,28 +775,14 @@ class Aichess():
                         continue
 
                     value =  max_value(newState, not player)
-
                     plays[tupleState(child)] = value
-                    if value > 0:
-                        sum += -1/value
-                    elif value == 0:
-                        sum += -1
-                    else:
-                        sum += value
                 self.undoMovement(stateW, stateB, child, kill, player)
 
-            prob = {}
-            v = 0
-            if sum == 0:
-                return 0
-            sum = abs(sum)
-            for child in plays.keys():
-                if plays[child] > 0:
-                    prob[child] = (1/plays[child]) / sum
-                else:
-                    prob[child] = -plays[child]/sum
-                v += prob[child] * plays[child]
 
+            v = 0
+
+            for child in plays.keys():
+                v += (1/len(plays)) * plays[child]
             return v
 
         initialState = State(stateW, stateB, None, 0, player)

@@ -19,7 +19,7 @@ class Simulate:
 
     def _reset(self):
         TA = np.zeros((8, 8))
-        TA[7][4] = 2
+        TA[7][0] = 2
         TA[7][5] = 6
         TA[0][5] = 12
         TA[0][0] = 8
@@ -131,12 +131,12 @@ if __name__ == "__main__":
     simulator = Simulate()
     algorithm = {"minmax":1, "alphabeta":2, "expectimax":3}
     depth = 4
-    aW = algorithm["minmax"]
-    aB = algorithm["minmax"]
+    aW = algorithm["expectimax"]
+    aB = algorithm["alphabeta"]
     times = 10
-    #simulator.simulate(depth, depth, times, aW, aB)
-
-    for i in range(2, 5):
+    simulator.simulate(depth, depth, times, aW, aB)
+    '''
+    for i in range(1, 6):
         for j in range(1,6):
             aW = algorithm["alphabeta"]
             aB = algorithm["alphabeta"]
@@ -149,5 +149,5 @@ if __name__ == "__main__":
             plt.axis('equal')
             plt.tight_layout()
             plt.show()
-
+    '''
 
