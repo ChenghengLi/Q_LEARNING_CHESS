@@ -366,7 +366,7 @@ class Aichess():
 
                     newStateW = child if player else nState
                     newStateB = nState if player else child
-                    newState = State(newStateW, newStateB, state, depth)
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
                     if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
@@ -377,7 +377,7 @@ class Aichess():
                 else:
                     newStateW = child if player else stateW
                     newStateB = stateB if player else child
-                    newState = State(newStateW, newStateB, state, depth)
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
                     if self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
@@ -443,7 +443,7 @@ class Aichess():
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
-        initialState = State(stateW, stateB, None, 0)
+        initialState = State(stateW, stateB, None, 0, player)
 
         if self.isCheckMate(initialState, not player):
             if player:
