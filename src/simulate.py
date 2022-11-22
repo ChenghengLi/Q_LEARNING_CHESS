@@ -1,7 +1,12 @@
+from collections import defaultdict
+
 import numpy as np
 
 import aichess
 import copy
+
+from src.state import State
+
 
 class Simulate:
 
@@ -25,7 +30,8 @@ class Simulate:
         self.player = True
 
     def isCheckmate(self):
-        return self.aichess.isCheckMate(self.currentStateW, self.currentStateB, self.player)
+        state = State(self.currentStateW, self.currentStateB, None, -1, self.player)
+        return self.aichess.isCheckMate(state, self.player)
 
     def _getNextMove(self, algorithm):
         if algorithm == 1:
@@ -48,6 +54,17 @@ class Simulate:
                 self.currentStateW = copy.deepcopy(nState)
         self.aichess.chess.board.print_board()
 
+    def _isStaleman(self):
+        l = self.currentStateW + self.currentStateB
+        l = tuple(tuple(x) for x in sorted(l))
+        self.prev_moves[l] += 1
+        if self.prev_moves[l] == 4:
+            return True
+        return False
+
+
+
+
     def simulate(self, depth, times, algorithmW, algorithmB):
         self.aichess.depthMax = depth
         black_counter = 0
@@ -55,12 +72,18 @@ class Simulate:
         draw_counter = 0
         for _ in range(times):
             print(_ + 1," simulation")
-            move_counter = 0
-            while True and move_counter < 40:
+            self.prev_moves = defaultdict(int)
+            while True:
                 next_move = self._getNextMove(algorithmW)
                 self._move(next_move)
+
+
                 if self.isCheckmate():
                     white_counter += 1
+                    break
+
+                if self._isStaleman():
+                    draw_counter += 1
                     break
 
                 self.player = not self.player
@@ -70,9 +93,11 @@ class Simulate:
                     black_counter += 1
                     break
                 self.player = not self.player
-                move_counter += 1
-            if move_counter == 40:
-                draw_counter += 1
+
+                if self._isStaleman():
+                    draw_counter += 1
+                    break
+
             self._reset()
 
 
@@ -87,7 +112,7 @@ if __name__ == "__main__":
     simulator = Simulate()
     algorithm = {"minmax":1, "alphabeta":2, "expectimax":3}
     depth = 4
-    aW = algorithm["alphabeta"]
+    aW = algorithm["expectimax"]
     aB = algorithm["alphabeta"]
     times = 5
     simulator.simulate(depth, times, aW, aB)

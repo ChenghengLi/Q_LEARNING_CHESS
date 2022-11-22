@@ -15,7 +15,7 @@ from typing import List
 RawStateType = List[List[List[int]]]
 
 from itertools import permutations
-
+from state import State
 
 class Aichess():
     """
@@ -103,7 +103,7 @@ class Aichess():
             return isVisited
         else:
             return False
-    def isCheck(self, stateW, stateB, oponent_king, player = True):
+    def isCheck(self, stateW, stateB, oponent_king = None, player = True):
 
         def checkPosition(child):
             positions = set()
@@ -113,6 +113,10 @@ class Aichess():
                     return False
                 positions.add((x, y))
             return True
+
+        if oponent_king == None:
+            oponent_king = self.getKing(stateB if player else stateW)
+
 
         children = self.getListNextStates(stateW, stateB, player)
         for child in children:
@@ -124,18 +128,44 @@ class Aichess():
 
         return False
 
+    def isCheck_1(self, state, player = True):
 
+        stateB = state.stateB
+        stateW = state.stateW
 
-    def isCheckMate(self, stateW, stateB, player=True):
+        def checkPosition(child):
+            positions = set()
+            for piece in child:
+                (x, y) = piece[0:2]
+                if (x, y) in positions:
+                    return False
+                positions.add((x, y))
+            return True
 
-        state = stateW if not player else stateB
+        oponent_king = self.getKing(stateB if player else stateW)
 
+        children = self.getListNextStates(stateW, stateB, player)
+        for child in children:
+            if not checkPosition(child):
+                continue
+            mymoves = set((x[0],x[1]) for x in child)
+            if oponent_king in mymoves:
+                return True
+
+        return False
+
+    def getKing(self, state):
         for i in state:
             if i[2] == 6 or i[2] == 12:
-                o_king_y, o_king_x = i[0:2]
+                return tuple(i[0:2])
 
-        if not self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
+    def isCheckMate(self, state, player=True):
+
+        if not self.isCheck_1(state, player):
             return False
+
+        stateW = state.stateW
+        stateB = state.stateB
 
         o_children = self.getListNextStates(stateW, stateB, not player)
         # Tots els possibles moviments del rival
@@ -147,21 +177,16 @@ class Aichess():
                 if self.checkKing(o_nState, not player):
                     self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                     continue
-                if player:
-                    sW = o_nState
-                    sB = stateB
-                else:
-                    sB = o_nState
-                    sW = stateW
+
+                sW = o_nState if player else stateW
+                sB = stateB if player else o_nState
+
             else:
                 sW = stateW if player else o_child
                 sB = stateB if not player else o_child
 
-            for i in o_child:
-                if i[2] == 6 or i[2] == 12:
-                    o_king_y, o_king_x = i[0:2]
-
-            if self.isCheck(sW, sB, (o_king_y, o_king_x), player):
+            newState = State(sW, sB, None, -1, player)
+            if self.isCheck_1(newState, player):
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                 continue
             else:
@@ -177,89 +202,88 @@ class Aichess():
                             (king_y + 1, king_x), (king_y + 1, king_x + 1)}
         return king_surrondings
 
-    def evaluate(self, stateW, stateB, player = True):
+    def evaluate(self, state, player=True):
 
+        def getPath(state):
+            path = list()
+            temp = state
+            while temp.parent != None:
+                path.append(temp)
+                temp = temp.parent
+            path.append(temp)
+            return path
+
+        def getRepetivive(path):
+            path_set = set([str(x) for x in path])
+            return len(path)-len(path_set)
+
+        bonus = 0
+        penalty = 0
+
+        path = getPath(state)
+
+        stateW = state.stateW
+        stateB = state.stateB
 
         oponent_state = stateB if player else stateW
         state = stateW if player else stateB
 
-        value = 0
+
         o_rook_y, o_rook_x, rook_y, rook_x = None, None, None, None
+
         # Material count
         for i in state:
             if i[2] == 2 or i[2] == 8:
-                value += 5
+                bonus += 500
                 rook_y, rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value += 100
+                bonus += 1000
                 king_y, king_x = i[0:2]
 
         for i in oponent_state:
             if i[2] == 2 or i[2] == 8:
-                value -= 5
+                penalty += 500
                 o_rook_y, o_rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value -= 100
+                penalty += 1000
                 o_king_y, o_king_x = i[0:2]
+
+        with_rook = (rook_x!=None and rook_y!=None)
+        o_with_rook = (o_rook_x!=None and o_rook_y!=None)
 
         # Mobility
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-        value += len(children)
+        bonus += len(children)
         children = self.getListNextStates(stateW, stateB, not player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-        value -= len(children)
-
-        # King safety
-        '''
-        king_surrondings = self.getKingSurrondings(king_y, king_x)
-        for i in oponent_state:
-            if tuple(i[0:2]) in king_surrondings:
-                value += 1
-
-        o_king_surrondings = self.getKingSurrondings(o_king_y, o_king_x)
-        for i in state:
-            if tuple(i[0:2]) in o_king_surrondings:
-                value -= 1
-        '''
+        penalty += len(children)
 
 
-        # Checks
-        if self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
-            value += 10
+        def distance(piece_1, piece_2):
+            return max(abs(piece_1[0] - piece_2[0]), abs(piece_1[1] - piece_2[1]))
 
-        if self.isCheck(stateW, stateB, (king_y, king_x), not player):
-            value -= 10
-
-        def manhattan_distance(piece_1, piece_2):
-            return abs(piece_1[0] - piece_2[0]) + abs(piece_1[1] - piece_2[1])
-
+        # Dist to center
         def get_dist_to_center(piece):
             center = {(3, 3), (3, 4), (4, 3), (4, 4)}
-            return max([manhattan_distance(piece, x) for x in center])
+            return max([distance(piece, x) for x in center])
 
-        value += get_dist_to_center((o_king_y, o_king_x))
+        bonus += get_dist_to_center((o_king_y, o_king_x))
+        penalty += get_dist_to_center((king_y, king_x))
 
-        value -= get_dist_to_center((king_y, king_x))
-
-        if rook_x == None and o_rook_x == None:
-            return 0
-
-        if rook_x == None and o_rook_y != None:
+        # Dist between kings
+        if o_with_rook:
             # get far from the the oppponent king
-            value -= manhattan_distance((o_king_y, o_king_x), (king_y, king_x))
-            # get close to the rook
-            value += manhattan_distance((o_king_y, o_king_x), (o_rook_y, o_rook_x))
+            bonus += 5 * distance((o_king_y, o_king_x), (king_y, king_x))
+            bonus += 5*getRepetivive(path)
 
-        if rook_x != None and o_rook_x == None:
-            #get close to the king our king
-            value += manhattan_distance((king_y, king_x), (king_y, king_x))
-            # get far from the king our rook
-            value -= manhattan_distance((king_y, king_x), (rook_y, rook_x))
+        if with_rook:
+            # get close to the king our king
+            penalty += 5 * distance((o_king_y, o_king_x), (king_y, king_x))
+            penalty += 5 * getRepetivive(path)
 
+        return bonus - penalty
 
-
-        return value
 
     # In order to eliminate invalid states
     def checkPositions(self, stateW, stateB = None, child = None, player = True):
@@ -344,135 +368,115 @@ class Aichess():
 
     def minimax_decision(self, stateW, stateB, player=True):
 
-        visited = set()
 
-        def max_value(stateW, stateB, child, depth, player):
+        def max_value(state, player):
 
-            if player:
-                stateB = child
-            else:
-                stateW = child
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
 
-            if self.isCheckMate(stateW, stateB, not player):
+            if self.isCheckMate(state, not player):
                 return -999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
+                a = self.evaluate(state, player)
                 return a
 
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
             for child in children:
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+                if not self.checkPositions(stateW, stateB, child, player):
                     continue
-                kill, nState = self.moveSim(stateW, stateB, child, player)
-                if kill:
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    if self.checkKing(nState, player):
+                kill, nState = self.moveSim(stateW, stateB, child, player)
+
+                if kill:
+
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth)
+
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value =  min_value(stateW, nState, child, depth + 1, not player)
-                    else:
-                        value =  min_value(nState, stateB, child, depth + 1, not player)
-                else:
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    value =  min_value(stateW, stateB, child, depth + 1, not player)
+                    value =  min_value(newState, not player)
+
+                else:
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth)
+
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value =  min_value(newState, not player)
+
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
+
             return v
 
-        def min_value(stateW, stateB, child, depth, player):
-            if player:
-                stateB = child
-            else:
-                stateW = child
+        def min_value(state, player):
 
-            visited.add(self.tupleSort(stateW, stateB))
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
 
-            if self.isCheckMate(stateW, stateB, not player):
-                #print("max_value checkmate")
-                #print(stateW, stateB, not player)
-                #self.chess.boardSim.print_board()
+            if self.isCheckMate(state, not player):
                 return 999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
+                a = self.evaluate(state, player)
                 return a
 
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
             for child in children:
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
 
-                if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+                if not self.checkPositions(stateW, stateB, child, player):
                     continue
-                kill, nState = self.moveSim(stateW, stateB, child, player)
-                if kill:
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    if self.checkKing(nState, player):
+                kill, nState = self.moveSim(stateW, stateB, child, player)
+
+                if kill:
+
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
+
+
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value =  max_value(stateW, nState, child, depth + 1, not player)
-                    else:
-                        value =  max_value(nState, stateB, child, depth + 1, not player)
+
+                    value =  max_value(newState, not player)
 
                 else:
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    value =  max_value(stateW, stateB, child, depth + 1, not player)
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value =  max_value(newState, not player)
 
                 v = min(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
-        if self.isCheckMate(stateW, stateB, not player):
-            #print("max_value checkmate")
-            #print(stateW, stateB, not player)
-            # self.chess.boardSim.print_board()
+        initialState = State(stateW, stateB, None, 0)
+
+        if self.isCheckMate(initialState, not player):
             if player:
                 state = stateW
             else:
@@ -485,43 +489,35 @@ class Aichess():
         children = self.getListNextStates(stateW, stateB, player)
 
         for child in children:
-            for i in child:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
 
-            if not self.checkPositions(stateW, stateB, child, player): #or self.tupleSort(child if player else stateW, child if not player else stateB) in visited:
+            if not self.checkPositions(stateW, stateB, child, player):
                 continue
+
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
             if kill:
-                if player:
-                    if self.isCheck(child, nState, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(nState, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
 
-                if self.checkKing(nState, player):
+                newStateW = child if player else nState
+                newStateB = nState if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
+
+                if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
-                if player:
-                    value = min_value(stateW, nState, child, 1, not player)
-                else:
-                    value = min_value(nState, stateB, child, 1, not player)
-            else:
-                if player:
-                    if self.isCheck(child, stateB, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(stateW, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
 
-                value = min_value(stateW, stateB, child, 1, not player)
+                value = min_value(newState, not player)
+
+            else:
+
+                newStateW = child if player else stateW
+                newStateB = stateB if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
+
+                if self.isCheck_1(newState, not player):
+                    self.undoMovement(stateW, stateB, child, kill, player)
+                    continue
+
+                value = min_value(newState, not player)
 
             if value > v:
                 v = value
@@ -534,21 +530,18 @@ class Aichess():
 
     def alphabeta(self, stateW, stateB, player):
 
-        visited = set()
+        def max_value(state, alpha, beta, player):
 
-        def max_value(stateW, stateB, child, depth, alpha, beta, player):
-            if player:
-                stateB = child
-            else:
-                stateW = child
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
 
-
-            if self.isCheckMate(stateW, stateB, not player):
+            if self.isCheckMate(state, not player):
                 return -999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
-                # print(a)
+                a = self.evaluate(state, player)
                 return a
 
             v = -float('inf')
@@ -556,45 +549,34 @@ class Aichess():
 
             for child in children:
 
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
-
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
+
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
                 if kill:
 
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
-                    if self.checkKing(nState, player):
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value = min_value(stateW, nState, child, depth + 1, alpha, beta, not player)
-                    else:
-                        value = min_value(nState, stateB, child, depth + 1, alpha, beta, not player)
+
+                    value = min_value(newState, alpha, beta, not player)
                 else:
 
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
-                    value = min_value(stateW, stateB, child, depth + 1, alpha, beta, not player)
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value = min_value(newState, alpha, beta, not player)
+
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
 
@@ -605,66 +587,52 @@ class Aichess():
 
             return v
 
-        def min_value(stateW, stateB, child, depth, alpha, beta, player):
-            if player:
-                stateB = child
-            else:
-                stateW = child
+        def min_value(state, alpha, beta, player):
 
-            if self.isCheckMate(stateW, stateB, not player):
-                #print("max_value checkmate")
-                #print(stateW, stateB, not player)
-                #self.chess.boardSim.print_board()
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
+
+            if self.isCheckMate(state, not player):
                 return 999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, not player)
-                # print(a)
+                a = self.evaluate(state, not player)
                 return a
+
             v = float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
             for child in children:
 
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
-
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
+
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
                 if kill:
 
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
-                    if self.checkKing(nState, player):
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value = max_value(stateW, nState, child, depth + 1, alpha, beta, not player)
-                    else:
-                        value = max_value(nState, stateB, child, depth + 1, alpha, beta, not player)
+
+                    value = max_value(newState, alpha, beta, not player)
                 else:
 
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
-                    value = max_value(stateW, stateB, child, depth + 1, alpha, beta, not player)
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value = max_value(newState, alpha, beta, not player)
 
                 v = min(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
@@ -675,10 +643,9 @@ class Aichess():
 
             return v
 
-        if self.isCheckMate(stateW, stateB, player):
-            #print("max_value checkmate")
-            # print(stateW, stateB, not player)
-            # self.chess.boardSim.print_board()
+        initialState = State(stateW, stateB, None, 0, player)
+
+        if self.isCheckMate(initialState, player):
             if player:
                 state = stateW
             else:
@@ -694,48 +661,36 @@ class Aichess():
 
         for child in children:
 
-            for i in child:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
+
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
             if kill:
 
-                if player:
-                    if self.isCheck(child, nState, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(nState, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
+                newStateW = child if player else nState
+                newStateB = nState if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
 
-                if self.checkKing(nState, player):
+                if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
-                if player:
-                    value = min_value(stateW, nState, child, 1, alpha, beta, not player)
-                else:
-                    value = min_value(nState, stateB, child, 1, alpha, beta, not player)
+
+                value = min_value(newState, alpha, beta, not player)
             else:
 
-                if player:
-                    if self.isCheck(child, stateB, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(stateW, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
+                newStateW = child if player else stateW
+                newStateB = stateB if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
 
-                value = min_value(stateW, stateB, child, 1, alpha, beta, not player)
+                if self.isCheck_1(newState, not player):
+                    self.undoMovement(stateW, stateB, child, kill, player)
+                    continue
 
-            #print(value, v, child)
+                value = min_value(newState, alpha, beta, not player)
+
+
             if value > v:
-                #self.chess.boardSim.print_board()
                 v = value
                 next_move = child
             self.undoMovement(stateW, stateB, child, kill, player)
@@ -752,83 +707,69 @@ class Aichess():
     def expectimax(self, stateW, stateB, player):
 
         visited = set()
-        def max_value(stateW, stateB, child, depth, player):
+        def max_value(state, player):
 
-            if player:
-                stateB = child
-            else:
-                stateW = child
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
 
-            if self.isCheckMate(stateW, stateB, not player):
-                #print(stateW, stateB, not player)
-                #print("chance_value checkmate")
-                #self.chess.boardSim.print_board()
+            if self.isCheckMate(state, not player):
                 return -999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, player)
-                #print(a)
+                a = self.evaluate(state, player)
                 return a
 
             v = -float('inf')
             children = self.getListNextStates(stateW, stateB, player)
 
             for child in children:
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
 
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
 
-                    if self.checkKing(nState, player):
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value =  chance_value(stateW, nState, child, depth + 1, not player)
-                    else:
-                        value =  chance_value(nState, stateB, child, depth + 1, not player)
-                else:
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    value =  chance_value(stateW, stateB, child, depth + 1, not player)
+                    value =  chance_value(newState, not player)
+
+                else:
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
+
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value =  chance_value(newState, not player)
                 v = max(v, value)
                 self.undoMovement(stateW, stateB, child, kill, player)
             return v
 
-        def chance_value(stateW, stateB, child, depth, player):
-            if player:
-                stateB = child
-            else:
-                stateW = child
+        def tupleState(state):
+            return tuple(tuple(row) for row in state)
 
-            if self.isCheckMate(stateW, stateB, not player):
-                #print("max_value checkmate")
-                #print(stateW, stateB, not player)
-                #self.chess.boardSim.print_board()
+        def chance_value(state, player):
+
+            stateB = state.stateB
+            stateW = state.stateW
+            depth = state.depth + 1
+            state.check = self.isCheck_1(state, not player)
+
+
+            if self.isCheckMate(state, not player):
                 return 999999
 
             if depth == self.depthMax:
-                a = self.evaluate(stateW, stateB, not player)
-                #print(a)
+                a = self.evaluate(state, not player)
                 return a
 
             children = self.getListNextStates(stateW, stateB, player)
@@ -836,72 +777,24 @@ class Aichess():
             sum = 0
             plays = {}
             for child in children:
-                for i in child:
-                    if i[2] == 6 or i[2] == 12:
-                        king_y, king_x = i[0:2]
-                king = (king_y, king_x)
 
                 if not self.checkPositions(stateW, stateB, child, player):
                     continue
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:
-                    if player:
-                        if self.isCheck(child, nState, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(nState, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    if self.checkKing(nState, player):
+                    newStateW = child if player else nState
+                    newStateB = nState if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
+
+                    if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                         self.undoMovement(stateW, stateB, child, kill, player)
                         continue
-                    if player:
-                        value =  max_value(stateW, nState, child, depth + 1, not player)
-                        fill = child.copy()
-                        i = 0
-                        for piece in fill:
-                            fill[i] = tuple(piece)
-                            i += 1
-                        plays[tuple(fill)] = value
-                        if value > 0:
-                            sum += -1/value
-                        elif value == 0:
-                            sum += -1
-                        else:
-                            sum += value
-                    else:
-                        value =  max_value(nState, stateB, child, depth + 1, not player)
-                        fill = child.copy()
-                        i = 0
-                        for piece in fill:
-                            fill[i] = tuple(piece)
-                            i += 1
-                        plays[tuple(fill)] = value
-                        if value > 0:
-                            sum += -1/value
-                        elif value == 0:
-                            sum += -1
-                        else:
-                            sum += value
-                else:
-                    if player:
-                        if self.isCheck(child, stateB, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
-                    else:
-                        if self.isCheck(stateW, child, king, not player):
-                            self.undoMovement(stateW, stateB, child, kill, player)
-                            continue
 
-                    value =  max_value(stateW, stateB, child, depth + 1, not player)
-                    i = 0
-                    fill = child.copy()
-                    for piece in fill:
-                        fill[i] = tuple(piece)
-                        i += 1
-                    plays[tuple(fill)] = value
+                    value =  max_value(newState, not player)
+
+                    plays[tupleState(child)] = value
+
                     if value > 0:
                         sum += -1/value
                     elif value == 0:
@@ -909,6 +802,24 @@ class Aichess():
                     else:
                         sum += value
 
+                else:
+                    newStateW = child if player else stateW
+                    newStateB = stateB if player else child
+                    newState = State(newStateW, newStateB, state, depth, not player)
+
+                    if self.isCheck_1(newState, not player):
+                        self.undoMovement(stateW, stateB, child, kill, player)
+                        continue
+
+                    value =  max_value(newState, not player)
+
+                    plays[tupleState(child)] = value
+                    if value > 0:
+                        sum += -1/value
+                    elif value == 0:
+                        sum += -1
+                    else:
+                        sum += value
                 self.undoMovement(stateW, stateB, child, kill, player)
 
             prob = {}
@@ -922,12 +833,12 @@ class Aichess():
                 else:
                     prob[child] = -plays[child]/sum
                 v += prob[child] * plays[child]
+
             return v
 
-        if self.isCheckMate(stateW, stateB, not player):
-            #print("max_value checkmate")
-            # print(stateW, stateB, not player)
-            # self.chess.boardSim.print_board()
+        initialState = State(stateW, stateB, None, 0, player)
+
+        if self.isCheckMate(initialState, not player):
             if player:
                 state = stateW
             else:
@@ -940,42 +851,33 @@ class Aichess():
         children = self.getListNextStates(stateW, stateB, player)
 
         for child in children:
-            for i in child:
-                if i[2] == 6 or i[2] == 12:
-                    king_y, king_x = i[0:2]
-            king = (king_y, king_x)
 
             if not self.checkPositions(stateW, stateB, child, player):
                 continue
-            kill, nState = self.moveSim(stateW, stateB, child, player)
-            if kill:
-                if player:
-                    if self.isCheck(child, nState, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(nState, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
 
-                if self.checkKing(nState, player):
+            kill, nState = self.moveSim(stateW, stateB, child, player)
+
+            if kill:
+                newStateW = child if player else nState
+                newStateB = nState if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
+
+                if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
-                if player:
-                    value = chance_value(stateW, nState, child, 1, not player)
-                else:
-                    value = chance_value(nState, stateB, child, 1, not player)
-            else:
-                if player:
-                    if self.isCheck(child, stateB, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
-                else:
-                    if self.isCheck(stateW, child, king, not player):
-                        self.undoMovement(stateW, stateB, child, kill, player)
-                        continue
 
-                value = chance_value(stateW, stateB, child, 1, not player)
+                value = chance_value(newState, not player)
+            else:
+                newStateW = child if player else stateW
+                newStateB = stateB if player else child
+                newState = State(newStateW, newStateB, initialState, 0, not player)
+
+                if self.isCheck_1(newState, not player):
+                    self.undoMovement(stateW, stateB, child, kill, player)
+                    continue
+
+                value = chance_value(newState, not player)
+
             if value > v:
                 v = value
                 next_move = child
@@ -1018,7 +920,6 @@ def generateBoard():
     """
     Generates a random board
     """
-
     board = np.zeros((8, 8))
     # Generate random pieces
     kS = set()
