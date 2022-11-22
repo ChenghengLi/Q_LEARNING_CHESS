@@ -103,30 +103,7 @@ class Aichess():
             return isVisited
         else:
             return False
-    def isCheck(self, stateW, stateB, oponent_king = None, player = True):
 
-        def checkPosition(child):
-            positions = set()
-            for piece in child:
-                (x, y) = piece[0:2]
-                if (x, y) in positions:
-                    return False
-                positions.add((x, y))
-            return True
-
-        if oponent_king == None:
-            oponent_king = self.getKing(stateB if player else stateW)
-
-
-        children = self.getListNextStates(stateW, stateB, player)
-        for child in children:
-            if not checkPosition(child):
-                continue
-            mymoves = set((x[0],x[1]) for x in child)
-            if oponent_king in mymoves:
-                return True
-
-        return False
 
     def isCheck_1(self, state, player = True):
 
@@ -209,12 +186,12 @@ class Aichess():
         stateB = state.stateB
 
         oponent_state = stateB if player else stateW
-        state = stateW if player else stateB
+        state_1 = stateW if player else stateB
 
         value = 0
         o_rook_y, o_rook_x, rook_y, rook_x = None, None, None, None
         # Material count
-        for i in state:
+        for i in state_1:
             if i[2] == 2 or i[2] == 8:
                 value += 100
                 rook_y, rook_x = i[0:2]
@@ -241,10 +218,10 @@ class Aichess():
 
 
         # Checks
-        if self.isCheck(stateW, stateB, (o_king_y, o_king_x), player):
+        if self.isCheck_1(state, player):
             value += 10
 
-        if self.isCheck(stateW, stateB, (king_y, king_x), not player):
+        if self.isCheck_1(state, not player):
             value -= 10
 
         def manhattan_distance(piece_1, piece_2):
@@ -944,11 +921,13 @@ if __name__ == "__main__":
             if i[2] == 12:
                 oK = i[0:2]
         oK = tuple(oK)
-        cmW = aichess.isCheckMate(currentStateW, currentStateB, True)
+
+        a = State(currentStateW, currentStateB, None, 0, True)
+        cmW = aichess.isCheckMate(a, True)
         if cmW:
             print("white checkmate")
             aichess.chess.board.print_board()
-        cm = aichess.isCheckMate(currentStateW, currentStateB, not True)
+        cm = aichess.isCheckMate(a, not True)
         if cm:
             print("black checkmate")
             aichess.chess.board.print_board()
