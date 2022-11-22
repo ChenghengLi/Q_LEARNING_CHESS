@@ -181,6 +181,7 @@ class Aichess():
         return king_surrondings
 
     def evaluate(self, state, player = True):
+        player = self.player
 
         stateW = state.stateW
         stateB = state.stateB
@@ -239,7 +240,7 @@ class Aichess():
             return 0
 
         if rook_x == None and o_rook_y != None:
-            # get far from the the oppponent king
+            # get far from the the opponent king
             value -= manhattan_distance((o_king_y, o_king_x), (king_y, king_x))
             # get close to the rook
             value += manhattan_distance((o_king_y, o_king_x), (o_rook_y, o_rook_x))
@@ -337,6 +338,7 @@ class Aichess():
 
 
     def minimax_decision(self, stateW, stateB, player=True):
+        self.player = player
 
         def max_value(state, player):
 
@@ -498,6 +500,7 @@ class Aichess():
 
 
     def alphabeta(self, stateW, stateB, player):
+        self.player = player
 
         def max_value(state, alpha, beta, player):
 
@@ -672,6 +675,7 @@ class Aichess():
 
 
     def expectimax(self, stateW, stateB, player):
+        self.player = player
 
         visited = set()
         def max_value(state, player):
