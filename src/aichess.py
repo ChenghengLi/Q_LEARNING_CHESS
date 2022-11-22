@@ -216,18 +216,18 @@ class Aichess():
         # Material count
         for i in state:
             if i[2] == 2 or i[2] == 8:
-                value += 5
+                value += 100
                 rook_y, rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value += 100
+                value += 1000
                 king_y, king_x = i[0:2]
 
         for i in oponent_state:
             if i[2] == 2 or i[2] == 8:
-                value -= 5
+                value -= 100
                 o_rook_y, o_rook_x = i[0:2]
             elif i[2] == 6 or i[2] == 12:
-                value -= 100
+                value -= 1000
                 o_king_y, o_king_x = i[0:2]
 
         # Mobility
@@ -238,19 +238,6 @@ class Aichess():
         children = self.getListNextStates(stateW, stateB, not player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
         value -= len(children)
-
-
-        # King safety
-        '''
-        king_surrondings = self.getKingSurrondings(king_y, king_x)
-        for i in oponent_state:
-            if tuple(i[0:2]) in king_surrondings:
-                value += 1
-        o_king_surrondings = self.getKingSurrondings(o_king_y, o_king_x)
-        for i in state:
-            if tuple(i[0:2]) in o_king_surrondings:
-                value -= 1
-        '''
 
 
         # Checks
