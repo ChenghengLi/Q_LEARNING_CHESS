@@ -812,6 +812,7 @@ class Aichess():
 
             # Al final, apliquem la distribució de probabilitat a cada jugada i la multipliquem pel propi valor de la jugada
             # Així calculem l'esperança
+
             prob = {}
             v = 0
             if sum == 0:
