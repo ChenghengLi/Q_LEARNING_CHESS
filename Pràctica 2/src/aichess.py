@@ -784,7 +784,7 @@ class Aichess():
                     plays[tupleState(child)] = value
 
                     if value > 0:
-                        sum += -1/value
+                        sum += -1/float(value)
                     elif value == 0:
                         sum += -1
                     else:
@@ -803,7 +803,7 @@ class Aichess():
 
                     plays[tupleState(child)] = value
                     if value > 0:
-                        sum += -1/value
+                        sum += -1/float(value)
                     elif value == 0:
                         sum += -1
                     else:
@@ -819,7 +819,7 @@ class Aichess():
             sum = math.fabs(sum)
             for child in plays.keys():
                 if plays[child] > 0:
-                    prob[child] = (1/plays[child]) / sum
+                    prob[child] = (1/float(plays[child])) / sum
                 else:
                     prob[child] = -plays[child]/sum
                 v += prob[child] * plays[child]
