@@ -19,7 +19,7 @@ class Simulate:
 
     def _reset(self):
         TA = np.zeros((8, 8))
-        TA[7][0] = 2
+        TA[7][4] = 2
         TA[7][5] = 6
         TA[0][5] = 12
         TA[0][0] = 8
@@ -65,7 +65,7 @@ class Simulate:
 
 
 
-    def simulate(self, depth, times, algorithmW, algorithmB):
+    def simulate(self, depth_1, depth_2, times, algorithmW, algorithmB):
         self.aichess.depthMax = depth
         black_counter = 0
         white_counter = 0
@@ -74,7 +74,14 @@ class Simulate:
             print(_ + 1," simulation")
             self.prev_moves = defaultdict(int)
             while True:
+
+                self.aichess.depthMax = depth_1
                 next_move = self._getNextMove(algorithmW)
+
+                if next_move == None:
+                    draw_counter += 1
+                    break
+
                 self._move(next_move)
 
 
@@ -87,8 +94,14 @@ class Simulate:
                     break
 
                 self.player = not self.player
+                self.aichess.depthMax = depth_2
                 next_move = self._getNextMove(algorithmB)
                 self._move(next_move)
+
+                if next_move == None:
+                    draw_counter += 1
+                    break
+
                 if self.isCheckmate():
                     black_counter += 1
                     break
@@ -101,12 +114,18 @@ class Simulate:
             self._reset()
 
 
+
         print("--RESULTS--")
         print("White wins:", white_counter, "->", 100*white_counter/times, "%")
         print("Black wins:", black_counter, "->", 100*black_counter/times, "%")
         print("Draws:", draw_counter, "->", 100*draw_counter/times, "%")
-        print("|| Depth =", depth, "||")
+        print("|| Depth Whites =", depth_1, "||")
+        print("|| Depth Blacks =", depth_2, "||")
 
+        return white_counter, black_counter, draw_counter
+
+
+import matplotlib.pyplot as plt
 if __name__ == "__main__":
     print("Simulation innitialized")
     simulator = Simulate()
@@ -115,4 +134,20 @@ if __name__ == "__main__":
     aW = algorithm["minmax"]
     aB = algorithm["minmax"]
     times = 10
-    simulator.simulate(depth, times, aW, aB)
+    #simulator.simulate(depth, depth, times, aW, aB)
+
+    for i in range(2, 5):
+        for j in range(1,6):
+            aW = algorithm["alphabeta"]
+            aB = algorithm["alphabeta"]
+            sizes = list(simulator.simulate(i, j, times, aW, aB))
+            labels = ['White ' + str(round(100*sizes[0]/float(times), 2)) + "%", 'Black ' + str(round(100*sizes[1]/float(times), 2)) + "%", 'Draw '+ str(round(100*sizes[2]/float(times), 2)) + "%"]
+            colors = ['gold', 'yellowgreen', 'lightcoral']
+            patches, texts = plt.pie(sizes, colors=colors, startangle=90)
+            plt.legend(patches, labels, loc="best")
+            plt.title("Depth Whites = " + str(i) + " | Depth Blacks = " + str(j))
+            plt.axis('equal')
+            plt.tight_layout()
+            plt.show()
+
+
