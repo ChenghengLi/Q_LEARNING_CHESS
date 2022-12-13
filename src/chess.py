@@ -304,7 +304,7 @@ class Chess():
 
 
     def move(self, start, to):
-        print(self.board.currentStateW, "aa->",self.board.currentStateB)
+        #print(self.board.currentStateW, "aa->",self.board.currentStateB)
 
         """
         Moves a piece at `start` to `to`. Does nothing if there is no piece at the starting point.
