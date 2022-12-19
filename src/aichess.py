@@ -357,7 +357,7 @@ class Aichess():
         board = copy.deepcopy(self.chess.boardSim)
         # Constantes
         gamma = 0.9  # Constante de Disminución
-        alpha = 0.01  # Constante de Aprendizaje
+        alpha = 0.1  # Constante de Aprendizaje
         delta = 1  # Error
 
         # Inicialización de la tabla de Q-values
@@ -515,18 +515,18 @@ class Aichess():
                 child = random.choice(children)
 
             kill, nState = self.moveSim(stateW, stateB, child, player)
-            if kill:  # Ha matat al rei
-                self.undoMovement(stateW, stateB, child, kill, player)
-                continue
+            if kill:
+
+                newStateW = child if player else nState
+                newStateB = nState if player else child
+                newState = State(newStateW, newStateB, state, depth, not player)
+
+                if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
+                    self.undoMovement(stateW, stateB, child, kill, player)
+                    continue
 
             # self.chess.boardSim.print_board()
-
             depth += 1
-
-            if player:
-                newState = State(child, stateB, None, depth, player)  # o not player?
-            else:
-                newState = State(stateW, child, None, depth, player)  # o not player?
 
             # Recompensa del nuevo estado
             # print(newState)
