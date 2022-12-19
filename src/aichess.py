@@ -481,7 +481,8 @@ class Aichess():
         board = copy.deepcopy(self.chess.boardSim)
         # Constantes
         gamma = 0.9  # Constante de Disminución
-        alpha = 0.05  # Constante de Aprendizaje
+        alpha_W = 0.05  # Constante de Aprendizaje
+        alpha_B = 0.05
         delta = 1  # Error
 
         # Inicialización de la tabla de Q-values
@@ -527,7 +528,7 @@ class Aichess():
 
                 newStateW = child if player else nState
                 newStateB = nState if player else child
-                newState = State(newStateW, newStateB, state, depth, not player)
+                newState = State(newStateW, newStateB, state, iter, not player)
 
                 if self.checkKing(nState, player) or self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
@@ -535,7 +536,7 @@ class Aichess():
             else:
                 newStateW = child if player else stateW
                 newStateB = stateB if player else child
-                newState = State(newStateW, newStateB, state, depth, not player)
+                newState = State(newStateW, newStateB, state, iter, not player)
 
                 if self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
@@ -552,19 +553,18 @@ class Aichess():
                 maxim, fill = self.get_maxStates(Q_W, child, stateB, player)
                 q = Q_W[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)]
                 delta = r + gamma * maxim - q
-                Q_W[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)] = q + alpha * delta
+                Q_W[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)] = q + alpha_W * delta
 
             else:
                 maxim, fill = self.get_maxStates(Q_B, stateW, child, player)
                 q = Q_B[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)]
                 delta = r + gamma * maxim - q
-                Q_B[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)] = q + alpha * delta
+                Q_B[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)] = q + alpha_B * delta
 
             # Si hem fet checkmate, fem reset del tauler i dels estats
             if r == 100 or self.onlyKings(newState):
                 player = True
                 start = True
-                depth = 0
                 self.chess.boardSim.print_board()
                 stateW = state.stateW
                 stateB = state.stateB
