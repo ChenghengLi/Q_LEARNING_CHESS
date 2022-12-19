@@ -40,6 +40,17 @@ class Simulate:
             return self.aichess.alphabeta(self.currentStateW, self.currentStateB, self.player)
         elif algorithm == 3:
             return self.aichess.expectimax(self.currentStateW, self.currentStateB, self.player)
+        elif algorithm == 4:
+            return self._q_learning(self.player)
+
+    def _q_learning(self, player):
+        if self.Q_W == None:
+            self.Q_W, self.Q_B = self.aichess.q_learning(self.currentStateW, self.currentStateB, self.player)
+        if player:
+            return self.aichess.listSort(max(self.Q_W[self.currentStateW].items(), key = lambda x: x[1])[0], True)
+        else:
+            return self.aichess.listSort(max(self.Q_B[self.currentStateB].items(), key = lambda x: x[1])[0], False)
+
 
     def _move(self, next_move):
         self.aichess.move(self.currentStateW, self.currentStateB, next_move, self.player)
@@ -125,11 +136,13 @@ class Simulate:
         return white_counter, black_counter, draw_counter
 
 
+
+
 import matplotlib.pyplot as plt
 if __name__ == "__main__":
     print("Simulation innitialized")
     simulator = Simulate()
-    algorithm = {"minmax":1, "alphabeta":2, "expectimax":3}
+    algorithm = {"minmax":1, "alphabeta":2, "expectimax":3, "qlearning":4}
     depth = 4
     aW = algorithm["expectimax"]
     aB = algorithm["alphabeta"]
