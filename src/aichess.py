@@ -348,7 +348,6 @@ class Aichess():
     def q_learning(self, state, player):
         stateW = state.stateW
         stateB = state.stateB
-        depth = state.depth
         self.resetTable(self.chess.board)
 
         #print(stateW)
@@ -356,8 +355,7 @@ class Aichess():
         board = copy.deepcopy(self.chess.boardSim)
         # Constantes
         gamma = 0.9  # Constante de Disminución
-        alpha = 0.2  # Constante de Aprendizaje
-        error = float("inf")
+        alpha = 0.05  # Constante de Aprendizaje
         delta_list = []
 
         # Inicialización de la tabla de Q-values
@@ -370,23 +368,20 @@ class Aichess():
         for child in children:
             Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB if player else stateW)] = 0
 
-        start = True
+
         iter = 1
 
         while True:
 
             # Per anar reduint l'aleatorietat a mesura que va aprenent
-            iter += pow(10, -4)
+            iter += 1
             ct = 1/iter
 
             children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
             a = random.random()
 
-            if start:
-                child = random.choice(children)
-                start = False
             # Elegimos el hijo de mayor Q-value
-            elif a > ct:
+            if a > ct:
                 v, child = self.get_maxStates(Q, stateW, stateB, player)
             # Elegimos un hijo al azar
             else:
@@ -399,12 +394,11 @@ class Aichess():
 
             # self.chess.boardSim.print_board()
 
-            depth += 1
 
             if player:
-                newState = State(child, stateB, None, depth, player)
+                newState = State(child, stateB, None, iter, player)
             else:
-                newState = State(stateW, child, None, depth, player)
+                newState = State(stateW, child, None, iter, player)
 
             # Recompensa del nuevo estado
             # print(newState)
@@ -427,14 +421,9 @@ class Aichess():
             if r == 100:
                 # Calculem l'error del camí
                 max_delta = max(delta_list)
-                if max_delta < error:
-                    error = max_delta
-                    if abs(error) < pow(10, -9):
-                        break
-
-                start = True
+                if max_delta < pow(10, -9):
+                    break
                 delta_list = []
-                depth = 0
                 #self.chess.boardSim.print_board()
                 stateW = state.stateW
                 stateB = state.stateB
@@ -458,7 +447,6 @@ class Aichess():
 
 
     def get_maxStates(self, Q, stateW, stateB, player = True):
-
         if self.tupleSort(stateW, stateB) in Q:
             m = max(Q[self.tupleSort(stateW, stateB)].items(), key = lambda x: x[1])
             maxim = m[1]
