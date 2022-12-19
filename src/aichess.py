@@ -499,7 +499,7 @@ class Aichess():
         start = True
         iter = 0
 
-        while abs(delta) > pow(10, -6):
+        while abs(delta) > pow(10, -9):
 
             iter += 0.05
             ct = 1 / iter
@@ -543,7 +543,6 @@ class Aichess():
                     continue
 
             self.chess.boardSim.print_board()
-            depth += 1
 
             # Recompensa del nuevo estado
             r = self.recompensa_2(newState, player)
@@ -565,7 +564,7 @@ class Aichess():
             if r == 100 or self.onlyKings(newState):
                 player = True
                 start = True
-                self.chess.boardSim.print_board()
+                #self.chess.boardSim.print_board()
                 stateW = state.stateW
                 stateB = state.stateB
                 self.resetTable(board)
@@ -599,6 +598,7 @@ class Aichess():
         stateW = state.stateW
         stateB = state.stateB
 
+        # Recompensa orientada per a que les negres es deixin guanyar
         value = 0
         # Material count
         for i in stateW:
@@ -612,6 +612,21 @@ class Aichess():
                 value -= 10
             elif i[2] == 12:
                 value -= 100
+
+        # Mobility
+        children = self.getListNextStates(stateW, stateB, True)
+        children = [x for x in children if self.checkPositions(stateW, stateB, x, True)]
+        value += len(children)
+
+        children = self.getListNextStates(stateW, stateB, False)
+        children = [x for x in children if self.checkPositions(stateW, stateB, x, False)]
+        value -= len(children)
+
+        # Checks
+        if self.isCheck_1(state, True):
+            value += 10
+        if self.isCheck_1(state, False):
+            value -= 10
 
         if player:
             if self.isCheckMate(state, player):
@@ -674,6 +689,19 @@ def generateBoard():
                 kS = getKingSurrondings(y, x)
         board[x][y] = i
     return board
+
+def eliminar_estat(stateW, stateB, child, player):
+    if player:
+        for i in stateB:
+            for j in child:
+                if i[0:2] == j[0:2]:
+                    stateB.remove(i)
+    else:
+        for i in stateW:
+            for j in child:
+                if i[0:2] == j[0:2]:
+                    stateW.remove(i)
+
 
 
 if __name__ == "__main__":
@@ -758,10 +786,14 @@ if __name__ == "__main__":
         child = aichess.listSort(max(Q[pare].items(), key = lambda x: x[1])[0], player)
         aichess.moveSim(currentStateW, currentStateB, child, player)
         aichess.move(currentStateW, currentStateB, child, player)
+        eliminar_estat(currentStateW, currentStateB, child, player)
         depth += 1
         aichess.chess.board.print_board()
-        state = State(child, currentStateB, state, depth, player)
+        if player:
+            state = State(child, currentStateB, state, depth, player)
+        else:
+            state = State(currentStateW, child, state, depth, player)
         player = not player
-        print(state)
+        print(currentStateW, aichess.getCurrentStateW())
 
 
