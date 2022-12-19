@@ -515,6 +515,7 @@ class Aichess():
                 child = random.choice(children)
 
             kill, nState = self.moveSim(stateW, stateB, child, player)
+
             if kill:
 
                 newStateW = child if player else nState
@@ -559,8 +560,9 @@ class Aichess():
 
             stateW = newState.stateW
             stateB = newState.stateB
-            children = self.getListNextStates(stateW, stateB, player)  # not player, per canviar de jugador
             player = not player
+            children = self.getListNextStates(stateW, stateB, player)  # not player, per canviar de jugador
+
 
         print("----END----")
         # Retornar política, en lugar de Q?
