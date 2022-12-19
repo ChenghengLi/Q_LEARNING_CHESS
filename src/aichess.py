@@ -509,7 +509,7 @@ class Aichess():
                 child = random.choice(children)
                 start = False
             elif a > 0.2:
-                v, child = self.get_maxStates(Q, stateW, stateB, player)
+                v, child = self.get_maxStates(Q_W if player else Q_B, stateW, stateB, player)
             # Elegimos un hijo al azar
             else:
                 child = random.choice(children)
