@@ -386,7 +386,7 @@ class Aichess():
                 child = random.choice(children)
                 start = False
             # Elegimos el hijo de mayor Q-value
-            elif a > alpha:
+            elif a > ct:
                 v, child = self.get_maxStates(Q, stateW, stateB, player)
             # Elegimos un hijo al azar
             else:
