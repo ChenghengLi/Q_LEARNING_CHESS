@@ -625,7 +625,6 @@ class Aichess():
                 return value - 1
 
 
-
 def translate(s):
     """
     Translates traditional board coordinates of chess into list indices
