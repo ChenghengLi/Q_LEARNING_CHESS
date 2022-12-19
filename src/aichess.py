@@ -471,6 +471,67 @@ class Aichess():
         else:
             return -1
 
+    #Hace falta que aprenda a la vez no turnandose (Ya lo acabo yo sino)
+    '''
+    Pseudocode
+    
+    import numpy as np
+    
+    # Define the environment
+    state_space = [1, 2, 3, 4]  # Possible states
+    action_space = [0, 1]  # Possible actions
+    reward_function = {
+        (1, 0): 0,
+        (1, 1): 1,
+        (2, 0): 1,
+        (2, 1): 0,
+        (3, 0): 0,
+        (3, 1): 1,
+        (4, 0): 1,
+        (4, 1): 0
+    }  # Rewards for (state, action) pairs
+    
+    # Initialize Q-tables for both agents
+    Q1 = np.zeros((len(state_space), len(action_space)))
+    Q2 = np.zeros((len(state_space), len(action_space)))
+    
+    # Set hyperparameters
+    num_episodes = 1000  # Number of episodes to run
+    learning_rate = 0.1  # Learning rate for Q-learning update
+    discount_factor = 0.9  # Discount factor for future rewards
+    epsilon = 0.1  # Probability of choosing a random action (exploration)
+    
+    # Loop through the episodes
+    for episode in range(num_episodes):
+        # Reset the environment for the start of the episode
+        state1 = np.random.choice(state_space)  # Initial state for agent 1
+        state2 = np.random.choice(state_space)  # Initial state for agent 2
+    
+        while True:  # Loop until the episode ends
+            # Select actions for both agents
+            if np.random.uniform(0, 1) < epsilon:  # Explore
+                action1 = np.random.choice(action_space)
+                action2 = np.random.choice(action_space)
+            else:  # Exploit
+                action1 = np.argmax(Q1[state1, :])
+                action2 = np.argmax(Q2[state2, :])
+    
+            # Take actions and get rewards
+            next_state1, reward1 = state2, reward_function[(state1, action1)]
+            next_state2, reward2 = state1, reward_function[(state2, action2)]
+    
+            # Update Q-tables
+            Q1[state1, action1] = (1 - learning_rate) * Q1[state1, action1] + learning_rate * (reward1 + discount_factor * np.max(Q1[next_state1, :]))
+            Q2[state2, action2] = (1 - learning_rate) * Q2[state2, action2] + learning_rate * (reward2 + discount_factor * np.max(Q2[next_state2, :]))
+    
+            # Check if episode has ended
+            if state1 == state2 and action1 == action2:  # Terminal state
+                break
+    
+            # Update states
+            state1, state2 = next_state1, next_state2
+        
+        '''
     def q_learning_2(self, state, player):
         stateW = state.stateW
         stateB = state.stateB
