@@ -512,14 +512,14 @@ class Aichess():
 
 
             if iter > (0.05*1000):
-                iter = 0
+                iter = 0.05
                 player = True
                 stateW = state.stateW
                 stateB = state.stateB
                 self.resetTable(board)
                 children = self.getListNextStates(stateW, stateB, player)
 
-            ct = 0.2
+            ct = 1/iter
 
 
 
@@ -571,26 +571,26 @@ class Aichess():
 
 
             # Recompensa del nuevo estado
-            r = self.recompensa_2(newState, player)
+            r_1 = self.recompensa_2(newState, True)
 
             # Máximo de los Q-values des del hijo
 
             maxim, fill = self.get_maxStates(Q_W, newStateW, newStateB, not player)
             q = Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
-            delta_w = r + gamma * maxim - q
+            delta_w = r_1 + gamma * maxim - q
             Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_W * delta_w
 
-            r = self.recompensa_2(newState, not player)
+            r_2 = self.recompensa_2(newState, False)
             maxim, fill = self.get_maxStates(Q_B, newStateW, newStateB, not player)
             q = Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
-            delta_b = r + gamma * maxim - q
+            delta_b = r_2 + gamma * maxim - q
             Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_B * delta_b
 
             delta_list.append(delta_w)
             delta_list.append(delta_b)
 
             # Si hem fet checkmate, fem reset del tauler i dels estats
-            if iter > (0.05*100) or r == 100 or self.onlyKings(newState):
+            if iter > (0.05*100) or r_1 == 100 or r_2 == 100 or self.onlyKings(newState):
                 print(max(delta_list))
                 print(min(delta_list))
                 if abs(max(delta_list)) < pow(10, -9) or abs(min(delta_list)) < pow(10, -9):
