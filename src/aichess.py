@@ -578,13 +578,13 @@ class Aichess():
             maxim, fill = self.get_maxStates(Q_W, newStateW, newStateB, not player)
             q = Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
             delta_w = r + gamma * maxim - q
-            Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_W * delta
+            Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_W * delta_w
 
             r = self.recompensa_2(newState, not player)
             maxim, fill = self.get_maxStates(Q_B, newStateW, newStateB, not player)
             q = Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
             delta_b = r + gamma * maxim - q
-            Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_B * delta
+            Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_B * delta_b
 
             delta_list.append(delta_w)
             delta_list.append(delta_b)
