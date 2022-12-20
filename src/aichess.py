@@ -478,8 +478,8 @@ class Aichess():
         board = copy.deepcopy(self.chess.boardSim)
         # Constantes
         gamma = 0.9  # Constante de Disminución
-        alpha_W = 0.1  # Constante de Aprendizaje
-        alpha_B = 0.1
+        alpha_W = 0.01  # Constante de Aprendizaje
+        alpha_B = 0.01
         delta = 1  # Error
 
         # Inicialización de la tabla de Q-values
@@ -592,6 +592,8 @@ class Aichess():
             # Si hem fet checkmate, fem reset del tauler i dels estats
             if r_1 == 100 or r_2 == 100 or self.onlyKings(newState):
                 temp += 0.1
+                print(max(delta_list))
+                print(min(delta_list))
                 if abs(max(delta_list)) < pow(10, -3) and abs(min(delta_list)) < pow(10, -3):
                     break
                 iter = 0
@@ -781,7 +783,7 @@ if __name__ == "__main__":
     TA[0][5] = 12
     TA[7][5] = 6
     TA[7][0] = 2
-    #TA[0][0] = 8
+    TA[0][0] = 8
 
     aichess = Aichess(TA, True)
 
@@ -838,23 +840,21 @@ if __name__ == "__main__":
         print(state, aichess.getCurrentStateW())
 
     '''
-    Q = aichess.q_learning(state, True)
+    #Q = aichess.q_learning(state, True)
     # Exercici 2
-    #Q_W, Q_B = aichess.q_learning_2(state, True)
+    Q_W, Q_B = aichess.q_learning_2(state, True)
 
     # PARTIDA:
 
     player = True
 
     while not aichess.isCheckMate(state, player):
-
+        Q = Q_W if player else Q_B
         currentStateW = state.stateW
         currentStateB = state.stateB
         pare = aichess.tupleSort(currentStateW, currentStateB)
         maxim = -float("inf")
         value, child = aichess.get_maxStates(Q, currentStateW, currentStateB, player)
-        if value == 0:
-            print("no")
         aichess.moveSim(currentStateW, currentStateB, child, player)
         aichess.move(currentStateW, currentStateB, child, player)
         eliminar_estat(currentStateW, currentStateB, child, player)
