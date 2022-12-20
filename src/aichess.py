@@ -290,6 +290,7 @@ class Aichess():
         l = stateW + stateB
         return tuple(tuple(i) for i in sorted(l))
 
+    # Funció per transformar els estats tupla a llista
     def listSort(self, state, player):
         if player:
             return list(list(i) for i in sorted(state) if i[2] >= 0 and i[2] <= 6)
@@ -366,10 +367,11 @@ class Aichess():
         while True:
 
             # Per anar reduint l'aleatorietat a mesura que va aprenent
-
             ct = 1 / iter
 
             children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
+
+            # Nombre aleatori entre 0 i 1
             a = random.random()
             # Elegimos el máximo valor de los hijos
             if a > ct:
@@ -378,6 +380,7 @@ class Aichess():
             else:
                 child = random.choice(children)
 
+            # Realitzam el moviment triat child, si es pot
             kill, nState = self.moveSim(stateW, stateB, child, player)
             if kill:  # Ha matat al rei
                 self.undoMovement(stateW, stateB, child, kill, player)
@@ -385,22 +388,15 @@ class Aichess():
 
             # self.chess.boardSim.print_board()
 
-            if player:
-                newState = State(child, stateB, None, iter, player)
-            else:
-                newState = State(stateW, child, None, iter, player)
+            newState = State(child, stateB, None, iter, player)
 
             # Recompensa del nuevo estado
             # print(newState)
             r = self.recompensa(newState, player)
 
             # Máximo de los Q-values des del hijo
-            if player:
-                maxim, fill = self.get_maxStates(Q, child, stateB, player)
-                q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)]
-            else:
-                maxim, fill = self.get_maxStates(Q, stateW, child, player)
-                q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)]
+            maxim, fill = self.get_maxStates(Q, child, stateB, player)
+            q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)]
 
             # Fórmula del Q-value
             delta = r + gamma * maxim - q
@@ -422,6 +418,7 @@ class Aichess():
                 children = self.getListNextStates(stateW, stateB, player)
                 continue
 
+            # Actualitzem els estats i agafem els següents fills
             stateW = newState.stateW
             stateB = newState.stateB
             children = self.getListNextStates(stateW, stateB, player)
@@ -453,12 +450,14 @@ class Aichess():
 
             return 0, random.choice(children)
 
+    # Funció de recompensa (Exercici 1)
     def recompensa(self, state, player):
         if self.isCheckMate(state, player):
             return 100
         else:
             return -1
 
+    # Q-Learning (Exercici 2)
     def q_learning_2(self, state, player):
         stateW = state.stateW
         stateB = state.stateB
@@ -471,9 +470,8 @@ class Aichess():
         gamma = 0.9  # Constante de Disminución
         alpha_W = 0.01  # Constante de Aprendizaje
         alpha_B = 0.01
-        delta = 1  # Error
 
-        # Inicialización de la tabla de Q-values
+        # Inicialización de las tablas de Q-values, una para cada jugador
         Q_W = dict()
         Q_B = dict()
         children = self.getListNextStates(stateW, stateB, player)
@@ -500,7 +498,8 @@ class Aichess():
 
             # self.chess.boardSim.print_board()
             # D'aquesta manera, com abans, ens assegurem d'anar agafant els millors estats a mesura que avancem en la iteració enlloc d'aleatoris
-            if iter > (5000):
+            # Si ens passem de 5000 iteracions feim reset igualment
+            if iter > 5000:
                 #print()
                 temp += 0.1
                 iter = 0
@@ -541,6 +540,7 @@ class Aichess():
                 Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = 0
                 Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = 0
 
+            # Si no ha mort ningú, actualitzem els estats segons el jugador
             else:
                 newStateW = child if player else stateW
                 newStateB = stateB if player else child
@@ -549,6 +549,8 @@ class Aichess():
                 if self.isCheck_1(newState, not player):
                     self.undoMovement(stateW, stateB, child, kill, player)
                     continue
+
+            # En aquesta implementació, esteim fent que juguin un contra l'altre
 
             # Recompensa del nuevo estado
             r_1 = self.recompensa_2(newState, True)
@@ -560,7 +562,8 @@ class Aichess():
             delta_w = r_1 + gamma * maxim - q
             Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = q + alpha_W * delta_w
 
-            r_2 = self.recompensa_2(newState, True)
+            r_2 = self.recompensa_2(newState, False)
+
             maxim, fill = self.get_maxStates_2(Q_B, newStateW, newStateB, not player)
             q = Q_B[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
             delta_b = r_2 + gamma * maxim - q
@@ -619,6 +622,7 @@ class Aichess():
 
             return 0, random.choice(children)
 
+    # Funció per comprovar si només queden els dos reis vius
     def onlyKings(self, state):
         stateW = state.stateW
         stateB = state.stateB
@@ -636,7 +640,6 @@ class Aichess():
         stateW = state.stateW
         stateB = state.stateB
 
-        # Recompensa orientada per a que les negres es deixin guanyar
         value = 0
 
         # Material count
@@ -677,6 +680,7 @@ class Aichess():
             value -= 10
         '''
 
+        # Checkmates
         if self.isCheckMate(state, player):
             value += 10
         else:
