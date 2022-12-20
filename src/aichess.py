@@ -351,7 +351,7 @@ class Aichess():
 
         delta_list = []
 
-        # Inicialización de la tabla de Q-values
+        # Inicialización de la tabla de Q-values en diccionarios
         Q = dict()
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
@@ -411,7 +411,7 @@ class Aichess():
             # Si hem fet checkmate, fem reset del tauler i dels estats
             if r == 100:
                 iter += 0.1
-
+                # Convergència
                 if abs(max(delta_list)) < pow(10, -5) and abs(min(delta_list)) < pow(10, -5):
                     break
                 # self.chess.boardSim.print_board()
@@ -424,8 +424,7 @@ class Aichess():
 
             stateW = newState.stateW
             stateB = newState.stateB
-            children = self.getListNextStates(stateW, stateB, player)  # not player, per canviar de jugador
-            # player = not player
+            children = self.getListNextStates(stateW, stateB, player)
 
         print("----END----")
         self.resetTable(board)
@@ -528,6 +527,7 @@ class Aichess():
 
             kill, nState = self.moveSim(stateW, stateB, child, player)
 
+            # Si mor una torre, hem d'actualitzar l'estat enemic al nState
             if kill:
 
                 newStateW = child if player else nState
@@ -554,7 +554,7 @@ class Aichess():
             r_1 = self.recompensa_2(newState, True)
 
             # Máximo de los Q-values des del hijo
-            # Y actualizamos las dos tablas a la vez
+            # Y actualizamos las dos tablas a la vez usando la fórmula
             maxim, fill = self.get_maxStates_2(Q_W, newStateW, newStateB, not player)
             q = Q_W[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)]
             delta_w = r_1 + gamma * maxim - q
@@ -570,11 +570,12 @@ class Aichess():
             delta_list.append(delta_w)
             delta_list.append(delta_b)
 
-            # Si hem fet checkmate, fem reset del tauler i dels estats
+            # Si hem fet checkmate o tenim empat, fem reset del tauler i dels estats
             if r_1 == 100 or r_2 == 100 or self.onlyKings(newState):
                 temp += 0.1
                 #print(max(delta_list))
                 #print(min(delta_list))
+                # Convergència
                 if abs(max(delta_list)) < pow(10, -3) and abs(min(delta_list)) < pow(10, -3):
                     break
                 iter = 0
@@ -586,6 +587,7 @@ class Aichess():
                 children = self.getListNextStates(stateW, stateB, player)
                 continue
 
+            # Actualitzem estats i canviem de jugador
             stateW = newState.stateW
             stateB = newState.stateB
             player = not player
