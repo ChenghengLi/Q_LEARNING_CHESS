@@ -16,6 +16,8 @@ RawStateType = List[List[List[int]]]
 
 from itertools import permutations
 from state import State
+from tqdm import tqdm
+from matplotlib import pyplot as plt
 
 class Aichess():
     """
@@ -165,13 +167,14 @@ class Aichess():
                 sW = stateW if player else o_child
                 sB = stateB if not player else o_child
 
-            newState = State(sW, sB, None, -1, player)
+            newState = State(sW, sB, player)
             if self.isCheck_1(newState, player):
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                 continue
             else:
                 self.undoMovement(stateW, stateB, o_child, o_kill, not player)
                 return False
+        state.terminal = True
         return True
 
 
@@ -342,98 +345,96 @@ class Aichess():
         king_code = 12 if player else 6
         return king_code not in set(x[2] for x in state)
 
+    def isTerminalState(self, state):
+        return state.terminal
     # Q-Learning
     def q_learning(self, state, player):
         stateW = state.stateW
         stateB = state.stateB
-        depth = state.depth
-        self.resetTable(self.chess.board)
-
-        #print(stateW)
-        #print(self.getCurrentStateW())
+        convergency = False
         board = copy.deepcopy(self.chess.boardSim)
         # Constantes
         gamma = 0.9  # Constante de Disminución
         alpha = 0.05  # Constante de Aprendizaje
-
-        delta_list = []
-
-        # Inicialización de la tabla de Q-values
         Q = dict()
+        epoches = 100000
+
+        # Inicialización de Q
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
 
         Q[self.tupleSort(stateW, stateB)] = dict()
-
+        list_epochs = []
+        list_error= []
         for child in children:
             Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB if player else stateW)] = 0
 
-
-        iter = 0.1
-
-        while True:
-
-            # Per anar reduint l'aleatorietat a mesura que va aprenent
-
-            ct = 1/iter
-
-            children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-            a = random.random()
-
-            if a > ct:
-                v, child = self.get_maxStates(Q, stateW, stateB, player)
-            # Elegimos un hijo al azar
-            else:
-                child = random.choice(children)
-
-            kill, nState = self.moveSim(stateW, stateB, child, player)
-            if kill:  # Ha matat al rei
-                self.undoMovement(stateW, stateB, child, kill, player)
-                continue
-
-            # self.chess.boardSim.print_board()
-
-            if player:
-                newState = State(child, stateB, None, iter, player)
-            else:
-                newState = State(stateW, child, None, iter, player)
-
-            # Recompensa del nuevo estado
-            # print(newState)
-            r = self.recompensa(newState, player)
-
-            # Máximo de los Q-values des del hijo
-            if player:
-                maxim, fill = self.get_maxStates(Q, child, stateB, player)
-                q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)]
-            else:
-                maxim, fill = self.get_maxStates(Q, stateW, child, player)
-                q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)]
-
-            delta = r + gamma*maxim - q
-            delta_list.append(delta)
-            Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB if player else stateW)] = q + alpha * delta
-
-            # Si hem fet checkmate, fem reset del tauler i dels estats
-            if r == 100:
-                iter += 0.1
-
-                if abs(max(delta_list)) < pow(10, -5) and abs(min(delta_list)) < pow(10, -5):
-                    break
-                #self.chess.boardSim.print_board()
-                stateW = state.stateW
-                stateB = state.stateB
-                delta_list = list()
-                self.resetTable(board)
+        for epoch in tqdm(range(1,epoches + 1)):
+            newState = state
+            delta_list = list()
+            self.resetTable(board)
+            r = 0
+            moves = 0
+            while not self.isTerminalState(newState):
+                moves += 1
+                ct = 1/(epoch*0.01)
+                stateW = newState.stateW
+                stateB = newState.stateB
                 children = self.getListNextStates(stateW, stateB, player)
-                continue
+                children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
 
-            stateW = newState.stateW
-            stateB = newState.stateB
-            children = self.getListNextStates(stateW, stateB, player)  # not player, per canviar de jugador
-            # player = not player
+                # Epsilon-Greedy
+                a = random.random()
+                if a > ct:
+                    v, child = self.get_maxStates(Q, stateW, stateB, player)
+                else:
+                    child = random.choice(children)
+
+                kill, nState = self.moveSim(stateW, stateB, child, player)
+                if kill:  # Ha matat al rei
+                    self.undoMovement(stateW, stateB, child, kill, player)
+                    continue
+
+                # self.chess.boardSim.print_board()
+
+                if player:
+                    newState = State(child, stateB, player)
+                else:
+                    newState = State(stateW, child, player)
+
+                r = self.recompensa(newState, moves, player)
+
+                # Máximo de los Q-values des del hijo
+                if player:
+                    maxim, fill = self.get_maxStates(Q, child, stateB, player)
+                    q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB)]
+                else:
+                    maxim, fill = self.get_maxStates(Q, stateW, child, player)
+                    q = Q[self.tupleSort(stateW, stateB)][self.tupleSort(stateW, child)]
+
+                delta = r + gamma*maxim - q
+                delta_list.append(delta)
+                Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB if player else stateW)] = q + alpha * delta
+
+            error = max(abs(max(delta_list)), abs(min(delta_list)))
+            list_error.append(error)
+            list_epochs.append(epoch)
+
+            if error < pow(10, -3):
+                convergency =  True
+                break
 
         print("----END----")
+        print("Convergency: ", convergency)
+        print("Delta: ", error)
+        print("Epochs: ", epoch)
+        print("--------------------------")
+        # Graficar
+        plt.style.use('seaborn')
+        plt.title("Gráfica de los deltas")
+        plt.scatter(list_epochs, list_error, s=1)
+        plt.xticks(np.arange(min(list_epochs)-1, max(list_epochs) + 1, int(epoch/15) ))
+        plt.show()
         self.resetTable(board)
         return Q
 
@@ -461,10 +462,10 @@ class Aichess():
             return 0, random.choice(children)
 
 
-    def recompensa(self, state, player):
+    def recompensa(self, state, moves,  player):
         # Abierto a otras sugerencias
         if self.isCheckMate(state, player):
-            return 100
+            return 1000/moves
         else:
             return -1
 
@@ -782,8 +783,8 @@ if __name__ == "__main__":
 
     TA[0][5] = 12
     TA[7][5] = 6
-    TA[7][0] = 2
-    TA[0][0] = 8
+    TA[3][5] = 2
+    #TA[0][0] = 8
 
     aichess = Aichess(TA, True)
 
@@ -817,7 +818,7 @@ if __name__ == "__main__":
         '''
     currentStateW = copy.deepcopy(aichess.chess.board.currentStateW)
     currentStateB = copy.deepcopy(aichess.chess.board.currentStateB)
-    state = State(currentStateW, currentStateB, None, 0, True)
+    state = State(currentStateW, currentStateB, True)
     depth = 0
 
     '''
@@ -840,16 +841,16 @@ if __name__ == "__main__":
         print(state, aichess.getCurrentStateW())
 
     '''
-    #Q = aichess.q_learning(state, True)
+    Q = aichess.q_learning(state, True)
     # Exercici 2
-    Q_W, Q_B = aichess.q_learning_2(state, True)
+    #Q_W, Q_B = aichess.q_learning_2(state, True)
 
     # PARTIDA:
 
     player = True
 
     while not aichess.isCheckMate(state, player):
-        Q = Q_W if player else Q_B
+        #Q = Q_W if player else Q_B
         currentStateW = state.stateW
         currentStateB = state.stateB
         pare = aichess.tupleSort(currentStateW, currentStateB)
@@ -861,9 +862,9 @@ if __name__ == "__main__":
         depth += 1
         aichess.chess.board.print_board()
         if player:
-            state = State(child, currentStateB, state, depth, player)
+            state = State(child, currentStateB, player)
         else:
-            state = State(currentStateW, child, state, depth, player)
+            state = State(currentStateW, child, player)
         #player = not player
         if aichess.onlyKings(state):
             print("Draw")
