@@ -8,6 +8,7 @@ class State:
         self.player = player
         self.check = False
         self.terminal = False
+        self.checkmate = False
 
     def __str__(self):
         return "State: " + str(self.stateW) + " " + str(self.stateB)

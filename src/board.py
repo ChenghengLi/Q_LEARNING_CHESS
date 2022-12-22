@@ -146,13 +146,14 @@ class Board():
         return isSameState
 
     def updateState(self, stateW, stateB):
-
         for i in range(len(self.currentStateW)):
-            self.board[self.currentStateW[i][0]][self.currentStateW[i][1]] == None
+            self.board[self.currentStateW[i][0]][self.currentStateW[i][1]] = None
+
         self.currentStateW = copy.deepcopy(stateW)
 
         for i in range(len(self.currentStateB)):
-            self.board[self.currentStateB[i][0]][self.currentStateB[i][1]] == None
+            self.board[self.currentStateB[i][0]][self.currentStateB[i][1]] = None
+
         self.currentStateB = copy.deepcopy(stateB)
 
         newState = stateW + stateB

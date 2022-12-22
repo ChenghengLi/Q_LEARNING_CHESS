@@ -285,8 +285,9 @@ class Aichess():
         # Constantes
         gamma = 0.9  # Constante de Disminución
         alpha = 0.05  # Constante de Aprendizaje
+        epsilon = 0.1  # Constante de Exploración
         Q = dict()
-        macthes= 100000
+        macthes= 10000
 
         # Inicialización de Q
         children = self.getListNextStates(stateW, stateB, player)
@@ -306,7 +307,6 @@ class Aichess():
 
             while not self.isTerminalState(newState):
                 moves += 1
-                ct = 1/(match*0.01)
                 stateW = newState.stateW
                 stateB = newState.stateB
                 children = self.getListNextStates(stateW, stateB, player)
@@ -314,10 +314,11 @@ class Aichess():
 
                 # Epsilon-Greedy
                 a = random.random()
-                if a > ct:
-                    v, child = self.get_maxStates(Q, stateW, stateB, player)
-                else:
+                if a <= epsilon:
                     child = random.choice(children)
+                elif a > epsilon:
+                    v, child = self.get_maxStates(Q, stateW, stateB, player)
+
 
                 kill, nState = self.moveSim(stateW, stateB, child, player)
                 if kill:  # Ha matat al rei
@@ -345,11 +346,11 @@ class Aichess():
                 delta_list.append(delta)
                 Q[self.tupleSort(stateW, stateB)][self.tupleSort(child, stateB if player else stateW)] = q + alpha * delta
 
-            error = max(abs(max(delta_list)), abs(min(delta_list)))
+            error =max(abs(max(delta_list)), abs(min(delta_list)))
             list_error.append(error)
             list_epochs.append(match)
 
-            if error < pow(10, -2):
+            if error < pow(10, -1):
                 convergency =  True
                 break
 
@@ -399,9 +400,12 @@ class Aichess():
             return -1
 
     def q_learning_1(self, state, player):
+
         stateW = state.stateW
         stateB = state.stateB
         self.resetTable(self.chess.board)
+
+        fW, fB, q = self.aplicareSimetria(stateW, stateB)
 
         # print(stateW)
         # print(self.getCurrentStateW())
@@ -412,18 +416,18 @@ class Aichess():
         epoches = 5000
 
         list_epochs = []
-        list_error= []
+        list_error = []
         convergency = False
         # Inicialización de la tabla de Q-values
-        Q= dict()
+        Q = dict()
         children = self.getListNextStates(stateW, stateB, player)
         children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-        Q[self.tupleSort(stateW, stateB)] = dict()
-        Q[self.tupleSort(stateW, stateB)][player] = dict()
+        Q[self.tupleSort(fW, fB)] = dict()
+        Q[self.tupleSort(fW, fB)][player] = dict()
 
         for child in children:
-            Q[self.tupleSort(stateW, stateB)][player][self.tupleSort(child, stateB if player else stateW)] = 0
-
+            newStateW, newStateB, q = self.aplicareSimetria(child if player else stateW, stateB if player else child)
+            Q[self.tupleSort(fW, fB)][player][self.tupleSort(newStateW, newStateB)] = 0
 
         for epoch in tqdm(range(1, epoches + 1)):
             newState = state
@@ -433,18 +437,19 @@ class Aichess():
             moves = 0
             visited = set()
             explore_random = False
-            while not self.isTerminalState(newState):
 
+            while not self.isTerminalState(newState):
 
                 moves += 1
 
                 ct = 1 / (epoch * 0.01)
                 stateW = newState.stateW
                 stateB = newState.stateB
+
+                fW, fB, q = self.aplicareSimetria(stateW, stateB)
+
                 children = self.getListNextStates(stateW, stateB, player)
                 children = [x for x in children if self.checkPositions(stateW, stateB, x, player)]
-                visited.add(self.tupleSort(stateW, stateB))
-
 
                 a = random.random()
 
@@ -453,17 +458,18 @@ class Aichess():
                     child = random.choice(children)
                     explore_random = False
                 elif a > ct:
+                    if q != 3:
+                        self.chess.updateTable(fW, fB)
                     if not player:
-                        v, child = self.get_maxStates_2(Q, stateW, stateB, player)
+                        v, child = self.get_maxStates_2(Q, fW, fB, player)
                     if player:
-                        v, child = self.get_minStates_1(Q, stateW, stateB, player)
+                        v, child = self.get_minStates_1(Q, fW, fB, player)
+                    if q != 3:
+                        self.chess.updateTable(stateW, stateB)
                 # Elegimos un hijo al azar
                 else:
                     child = random.choice(children)
 
-
-                if self.tupleSort(child if player else stateW, stateB if player else child) in visited:
-                    break
 
                 kill, nState = self.moveSim(stateW, stateB, child, player)
 
@@ -481,7 +487,6 @@ class Aichess():
 
                     Q[self.tupleSort(stateW, stateB)][player][self.tupleSort(newStateW, newStateB)] = 0
 
-
                 else:
 
                     newStateW = child if player else stateW
@@ -491,8 +496,6 @@ class Aichess():
                 # Recompensa del nuevo estado
                 r_1 = self.recompensa_1(newState, moves, player)
 
-                if r_1 == 0:
-                    break
 
                 # Máximo de los Q-values des del hijo
                 if player:
@@ -534,7 +537,15 @@ class Aichess():
 
         return Q
 
-    def get_minStates_1(self, Q, stateW, stateB, player):
+    def get_minStates_1(self, Q, state, player):
+        if state.terminal:
+            return 0, None
+
+        s, q = self.aplicareSimetria(state)
+
+        stateW = s.stateW
+        stateB = s.stateB
+
 
         if self.tupleSort(stateW, stateB) in Q and player in Q[self.tupleSort(stateW, stateB)]:
             m = min(Q[self.tupleSort(stateW, stateB)][player].items(), key=lambda x: x[1])
@@ -555,6 +566,11 @@ class Aichess():
             return 0, random.choice(children)
 
     def recompensa_1(self, state, moves, player):
+
+        if self.isCheckMate(state, player):
+            return 50
+
+
         stateW = state.stateW
         stateB = state.stateB
 
@@ -563,40 +579,63 @@ class Aichess():
 
         if len(children) == 0:
             state.terminal = True
-            return 0
+            if player:
+                return -10
 
+        return 0
 
-        if self.onlyKings(state):
-            state.terminal = True
-            return -1000
+    def quadrante(self, stateB):
 
-        value = 0
+        for state in stateB:
+            if state[2] == 12:
+                y = state[0]
+                x = state[1]
 
-        if self.isCheckMate(state, player):
-            print("Checkmate", player)
-            return 1000
-
-        if player:
-            for i in stateW:
-                if i[2] == 2:
-                    value += 10
-
-
-            for i in stateB:
-                if i[2] == 8:
-                    value -= 10
+        if y < 4:
+            if x < 4:
+                return 1
+            else:
+                return 2
         else:
-            for i in stateW:
-                if i[2] == 2:
-                    value -= 10
+            if x < 4:
+                return 3
+            else:
+                return 4
 
-            for i in stateB:
-                if i[2] == 8:
-                    value += 10
+    def aplicareSimetria(self, stateW, stateB):
 
-        return value - 1
+        q = self.quadrante(stateB)
 
-    def get_maxStates_2(self, Q, stateW, stateB, player):
+        newStateW = list()
+        newStateB = list()
+
+        if q == 1:
+            for s in stateW:
+                newStateW.append([7-s[0], s[1], s[2]])
+            for s in stateB:
+                newStateB.append([7-s[0], s[1], s[2]])
+        elif q == 2:
+            for s in stateW:
+                newStateW.append([7-s[0], 7-s[1], s[2]])
+            for s in stateB:
+                newStateB.append([7-s[0], 7-s[1], s[2]])
+        elif q == 3:
+            return newStateW, newStateB, q
+        elif q == 4:
+            for s in stateW:
+                newStateW.append([s[0],7 - s[1], s[2]])
+            for s in stateB:
+                newStateB.append([s[0], 7 - s[1], s[2]])
+        return newStateW, newStateB, q
+
+    def get_maxStates_2(self, Q, state, player):
+        if state.terminal:
+            return 0, None
+
+        s, q = self.aplicareSimetria(state)
+
+        stateW = s.stateW
+        stateB = s.stateB
 
         if self.tupleSort(stateW, stateB) in Q and player in Q[self.tupleSort(stateW, stateB)]:
             m = max(Q[self.tupleSort(stateW, stateB)][player].items(), key=lambda x: x[1])
@@ -617,78 +656,6 @@ class Aichess():
 
             return 0, random.choice(children)
 
-    def onlyKings(self, state):
-        stateW = state.stateW
-        stateB = state.stateB
-
-        for i in stateW:
-            if i[2] != 6:
-                return False
-        for i in stateB:
-            if i[2] != 12:
-                return False
-        state.terminal = True
-        return True
-
-    def recompensa_2(self, state, player):
-        stateW = state.stateW
-        stateB = state.stateB
-
-        # Recompensa orientada per a que les negres es deixin guanyar
-        value = 0
-        # Material count
-
-        if self.onlyKings(state):
-            value -= 10
-
-        if player:
-            for i in stateW:
-                if i[2] == 2:
-                    value += 1
-
-
-            for i in stateB:
-                if i[2] == 8:
-                    value -= 1
-
-        else:
-            for i in stateW:
-                if i[2] == 2:
-                    value -= 1
-
-            for i in stateB:
-                if i[2] == 8:
-                    value += 1
-
-
-        '''
-        # Mobility
-        children = self.getListNextStates(stateW, stateB, True)
-        children = [x for x in children if self.checkPositions(stateW, stateB, x, True)]
-        value += len(children)
-
-        children = self.getListNextStates(stateW, stateB, False)
-        children = [x for x in children if self.checkPositions(stateW, stateB, x, False)]
-        value -= len(children)
-
-        # Checks
-        if self.isCheck_1(state, True):
-            value += 10
-        if self.isCheck_1(state, False):
-            value -= 10
-        '''
-
-        if self.isCheckMate(state, player):
-            value += 10
-        else:
-            value -= 1
-
-        if self.isCheckMate(state, not player):
-            value -= 10
-        else:
-            value += 1
-
-        return value
 
 
 
@@ -762,9 +729,9 @@ if __name__ == "__main__":
     TA = np.zeros((8, 8))
 
     TA[0][5] = 12
-    TA[7][5] = 6
+    TA[2][2] = 6
     TA[7][0] = 2
-    TA[0][0] = 8
+    #TA[0][0] = 8
 
     aichess = Aichess(TA, True)
 
@@ -799,7 +766,6 @@ if __name__ == "__main__":
     currentStateW = copy.deepcopy(aichess.chess.board.currentStateW)
     currentStateB = copy.deepcopy(aichess.chess.board.currentStateB)
     state = State(currentStateW, currentStateB, True)
-    print(aichess.isCheck_1(state, True))
     depth = 0
 
     '''
@@ -821,7 +787,7 @@ if __name__ == "__main__":
         state = State(child, currentStateB, state, depth, True)
         print(state, aichess.getCurrentStateW())
 
-    '''
+   '''
     Q = aichess.q_learning_1(state, True)
     # Exercici 2
     #Q_W, Q_B = aichess.q_learning_2(state, True)
@@ -833,16 +799,11 @@ if __name__ == "__main__":
     move = 0
     while not aichess.isCheckMate(state, player):
         move += 1
-        #Q = Q_W if player else Q_B
         currentStateW = state.stateW
         currentStateB = state.stateB
         pare = aichess.tupleSort(currentStateW, currentStateB)
         maxim = -float("inf")
-        if player:
-            value, child = aichess.get_maxStates_2(Q, currentStateW, currentStateB, player)
-        else:
-            value, child = aichess.get_minStates_1(Q, currentStateW, currentStateB, player)
-
+        value, child = aichess.get_maxStates_2(Q, state, player)
         aichess.moveSim(currentStateW, currentStateB, child, player)
         aichess.move(currentStateW, currentStateB, child, player)
         eliminar_estat(currentStateW, currentStateB, child, player)
@@ -853,8 +814,9 @@ if __name__ == "__main__":
         else:
             state = State(currentStateW, child, player)
         player = not player
-        if aichess.onlyKings(state) or move >= 80:
+        if move >= 80:
             print("Draw")
             break
-        print(currentStateW, aichess.getCurrentStateW())
+
+
 
